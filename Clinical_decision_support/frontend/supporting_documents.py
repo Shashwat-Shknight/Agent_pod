@@ -147,13 +147,16 @@ def load_document_repository(
     legacy_repository_path: Path | None = DEFAULT_LEGACY_REPOSITORY,
     approved_soap_path: Path | None = DEFAULT_APPROVED_SOAP_PATH,
 ) -> list[dict[str, Any]]:
+    from app.db.settings import use_snowflake
+
+    snowflake = use_snowflake()
     document_root.mkdir(parents=True, exist_ok=True)
     for folder_name in DOCUMENT_FOLDERS:
         (document_root / folder_name).mkdir(parents=True, exist_ok=True)
     _copy_legacy_documents(
         document_root,
         legacy_repository_path,
-        approved_soap_path,
+        None if snowflake else approved_soap_path,  # approved notes come from the database instead
     )
 
     documents = []
@@ -189,7 +192,37 @@ def load_document_repository(
             "encounter_id": encounter_id,
             "size_bytes": path.stat().st_size,
         })
+    if snowflake:
+        documents.extend(_database_soap_documents({document["document_id"] for document in documents}))
     return documents
+
+
+def _database_soap_documents(known_ids: set[str]) -> list[dict[str, Any]]:
+    """Approved SOAP notes stored in CLINICAL.SOAP_NOTES, exposed as repository documents."""
+    from app.db import soap_notes
+
+    documents = []
+    for payload in soap_notes.list_approved():
+        encounter_id = payload["encounter_id"]
+        document_id = f"DOC-SOAP-{_safe_scope(encounter_id)}"
+        if document_id in known_ids or not payload["soap_note"].strip():
+            continue
+        documents.append({
+            "document_id": document_id,
+            "document_type": "SOAP Note",
+            "file_name": f"{_safe_scope(encounter_id)}_soap.txt",
+            "file_path": "",
+            "relative_path": f"snowflake://CLINICAL.SOAP_NOTES/{encounter_id}",
+            "patient_id": payload["patient_id"],
+            "encounter_id": encounter_id,
+            "size_bytes": len(payload["soap_note"].encode("utf-8")),
+            "source": "database",
+        })
+    return documents
+
+
+def _document_available(document: dict[str, Any]) -> bool:
+    return document.get("source") == "database" or Path(str(document.get("file_path") or "")).is_file()
 
 
 def documents_for_claim(
@@ -240,7 +273,7 @@ def available_documents_for_claim(
             "Result": "✅ Document Available",
         }
         for document in documents_for_claim(claim, documents)
-        if Path(str(document.get("file_path") or "")).is_file()
+        if _document_available(document)
     ]
 
 
@@ -262,7 +295,7 @@ def validate_claim_documents(
         document for document in scoped_documents
         if isinstance(document, dict)
         and str(document.get("document_id") or "").strip() in attached_ids
-        and Path(str(document.get("file_path") or "")).is_file()
+        and _document_available(document)
     ]
     result_rows = []
     charges = claim.get("Charges")

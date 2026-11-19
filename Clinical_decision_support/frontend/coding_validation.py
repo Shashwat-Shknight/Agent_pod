@@ -113,13 +113,34 @@ def _scrub_checks(scrub: dict[str, Any] | None) -> list[dict[str, str]]:
     return checks
 
 
+def code_set_checks(results: list[dict[str, Any]] | None) -> list[dict[str, str]]:
+    """One check summarising official code-set validity (skipped when no results were supplied)."""
+    if results is None:
+        return []
+    problems = [result for result in results if not result.get("ok")]
+    cpt = [result["code"] for result in results if result.get("system") == "CPT"]
+    if problems:
+        details = []
+        for result in problems:
+            fix = ", ".join(item["code"] for item in result.get("replacements", [])[:4])
+            details.append(f'{result["code"]}: {result["message"]}' + (f" (use {fix})" if fix else ""))
+        return [_check("Official code set", FAIL, "; ".join(details))]
+    verified = len(results) - len(cpt)
+    note = f" · {len(cpt)} CPT code(s) not verifiable without an AMA licence" if cpt else ""
+    return [_check("Official code set", PASS, f"{verified} ICD-10-CM/HCPCS code(s) valid and billable on the date of service{note}")]
+
+
 def post_coding_checks(
     rows: list[dict[str, Any]],
     documentation: str = "",
     meat_signals: Callable[[str], dict[str, bool]] | None = None,
     scrub: dict[str, Any] | None = None,
+    code_set_results: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, str]]:
     """Code-set integrity checks run after coder decisions, before billing.
+
+    ``code_set_results`` (optional) are app.reference.lookup.validate_codes results for the active codes:
+    each code checked against the official ICD-10-CM / HCPCS release in force on the date of service.
 
     ``rows`` are coding-workspace rows with keys: key, type, code, description, status,
     hcc, excerpt and (for CPT rows) procedure_status.
@@ -152,6 +173,8 @@ def post_coding_checks(
         checks.append(_check("Accepted services performed", FAIL, "Accepted but not documented as performed: " + ", ".join(not_performed)))
     elif cpt:
         checks.append(_check("Accepted services performed", PASS, "Every accepted service is documented as performed"))
+
+    checks.extend(code_set_checks(code_set_results))
 
     pending_queries = [row["code"] for row in active if row.get("status") == "Query sent"]
     if pending_queries:

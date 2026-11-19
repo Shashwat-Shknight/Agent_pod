@@ -1,0 +1,23 @@
+# secrets
+.env
+!.env.example
+*.p8
+*.pem
+.streamlit/secrets.toml
+# environments / caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# local runtime files (replaced by Snowflake when STORAGE_BACKEND=snowflake)
+clinical_records.json
+data/access_control.json
+data/vbc_state.json
+data/vbc_poc_state.json
+*.tmp
+*.lock
+
+# per-machine generated files (bootstrap SQL with this machine's public keys)
+snowflake/local/
+chroma_db/

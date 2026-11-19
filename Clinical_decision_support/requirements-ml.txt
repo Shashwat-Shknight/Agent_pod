@@ -1,0 +1,7 @@
+# OPTIONAL - dense-embedding knowledge-base retrieval. Downloads models from Hugging Face.
+# Not needed: the default EMBEDDING_BACKEND=tfidf works fully offline.
+# Enable:  pip install -r requirements-ml.txt  then set EMBEDDING_BACKEND=sentence_transformer in .env
+#          and rebuild:  python -m app.scripts.build_kb
+-r requirements.txt
+sentence-transformers>=2.7
+chromadb>=0.5

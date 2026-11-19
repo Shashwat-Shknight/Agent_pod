@@ -1,8 +1,8 @@
 """User access management: accounts, hashed passwords, role permissions,
 fallback (backup) users, work reassignment and an audit trail.
 
-State lives in one JSON file (``data/access_control.json`` by default) so it
-survives restarts. The functions here are pure apart from ``load_store`` and
+State lives in the Snowflake SECURITY schema (STORAGE_BACKEND=snowflake) or, offline, in
+one JSON file (``data/access_control.json`` by default) so it survives restarts. The functions here are pure apart from ``load_store`` and
 ``save_store``; callers decide when to persist.
 """
 from __future__ import annotations
@@ -105,6 +105,16 @@ def empty_store() -> dict[str, Any]:
 
 
 def load_store(path: str | Path) -> dict[str, Any]:
+    """Load the access store: Snowflake SECURITY schema when enabled, else the JSON file at ``path``."""
+    from app.db.settings import use_snowflake
+
+    if use_snowflake():
+        from app.db import access_store
+
+        store = access_store.load_store()
+        if not store["users"] and not store["role_permissions"]:
+            return empty_store()
+        return _with_defaults(store)
     path = Path(path)
     if not path.is_file():
         return empty_store()
@@ -112,6 +122,10 @@ def load_store(path: str | Path) -> dict[str, Any]:
         store = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return empty_store()
+    return _with_defaults(store)
+
+
+def _with_defaults(store: dict[str, Any]) -> dict[str, Any]:
     store.setdefault("users", [])
     store.setdefault("audit", [])
     permissions = store.setdefault("role_permissions", {})
@@ -126,6 +140,13 @@ def load_store(path: str | Path) -> dict[str, Any]:
 
 
 def save_store(path: str | Path, store: dict[str, Any]) -> None:
+    from app.db.settings import use_snowflake
+
+    if use_snowflake():
+        from app.db import access_store
+
+        access_store.save_store(store)
+        return
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_suffix(".tmp")

@@ -111,6 +111,7 @@ CHARGEMASTER_CPT_SERVICES = {
     "ct head": _service("70450", "CT head without contrast", "Radiology"),
     "mri brain": _service("70551", "MRI brain without contrast", "Radiology"),
     "ct chest with contrast": _service("71260", "CT chest with contrast", "Radiology"),
+    "ct chest": _service("71250", "CT chest without contrast", "Radiology"),
     "knee x ray": _service("73560", "X-ray exam of knee, 1 or 2 views", "Radiology"),
     "screening mammography": _service("77067", "Screening mammography, bilateral", "Radiology"),
     "prothrombin time": _service("85610", "Prothrombin time / INR", "Laboratory"),
@@ -149,6 +150,9 @@ _CHARGEMASTER_PHRASES = {
     "ct chest with contrast": ("ct chest with contrast", "chest ct with contrast", "ct of the chest with contrast",
                                "ct scan of the chest with contrast", "ct scan of chest with contrast", "contrast ct chest",
                                "contrast enhanced ct chest"),
+    # Longest phrase wins (and is masked), so "... chest with contrast" above is never read as plain "ct chest".
+    "ct chest": ("ct chest without contrast", "ct chest", "chest ct", "ct of the chest", "ct of chest",
+                 "ct scan of the chest", "ct scan of chest", "ct scan chest", "ct thorax", "computed tomography chest"),
     "knee x ray": ("knee x ray", "x ray of the knee", "x ray of knee", "x ray knee"),
     "screening mammography": ("mammogram", "mammography", "screening mammogram"),
     "prothrombin time": ("prothrombin time", "pt inr", "inr"),

@@ -15,6 +15,7 @@ from frontend.ehr_chart import format_date
 from frontend.encounter_pipeline import (
     _procedure_status_inputs,
     classify_procedure_status,
+    dedupe_code_results,
     get_backend_code_suggestions,
     get_code_results_signature,
     get_record_insights,
@@ -131,17 +132,20 @@ def record_documentation(record):
 def encounter_code_results(record, base=None):
     """Matcher suggestions plus codes imported from a paper superbill (OCR)."""
     base = base if base is not None else (record.get("code_results") or {})
-    return ocr.merge_code_results(base, record.get("imported_codes"))
+    # One entry per code everywhere (coding table, billing guardrail, bill lines), even for older records.
+    return dedupe_code_results(ocr.merge_code_results(base, record.get("imported_codes")))
 
 
 def build_code_rows(record, code_results):
     documentation = record_documentation(record)
     decisions = record.get("code_decisions") or {}
     rows = []
+    seen_icd = set()
     for item in code_results.get("icd10", []) or []:
         code = str(item.get("ICD-10 Code") or "").strip()
-        if not code:
+        if not code or code in seen_icd:
             continue
+        seen_icd.add(code)
         term = item.get("Extracted Condition", "")
         auto_status = "Symptom only" if code.upper().startswith("R") else "Suggested"
         key = f"ICD:{code}"
@@ -158,10 +162,13 @@ def build_code_rows(record, code_results):
                 "excerpt": best_excerpt(term, documentation),
             }
         )
+    seen_cpt = set()
     for item in code_results.get("cpt", []) or []:
         code = str(item.get("CPT/HCPCS Code") or "").strip()
-        if not code:
+        # One row per code: the same service can be found twice ("CT scan of chest" and "ct chest").
+        if not code or code in seen_cpt:
             continue
+        seen_cpt.add(code)
         term = item.get("Extracted Procedure", "")
         status_procedure, status_documentation = _procedure_status_inputs(term, documentation)
         procedure_status = (
@@ -375,16 +382,68 @@ def run_claim_scrub(record, rows):
             from frontend.billing_scrubber import scrub_claim
         except ModuleNotFoundError:
             from billing_scrubber import scrub_claim
-        return scrub_claim(record_documentation(record), services, encounter_type=encounter_type)
+        report = scrub_claim(record_documentation(record), services, encounter_type=encounter_type)
     except Exception:
         return None
+    return apply_coder_overrides(report, record.get("billing_overrides") or {})
+
+
+def apply_coder_overrides(report, overrides):
+    """A coder's recorded "confirmed performed" override answers the scrubber's documentation-support edit.
+
+    Only ``unsupported_cpt`` is released (to a warning naming the coder); a wrong code for the documented
+    service (``imaging_mismatch``) or an invalid / unpriced code still blocks billing.
+    """
+    if not report or not overrides:
+        return report
+    kept, released = [], []
+    for issue in report.get("errors", []):
+        override = overrides.get(str(issue.get("code") or ""))
+        if issue.get("type") == "unsupported_cpt" and override:
+            released.append({
+                **issue,
+                "type": "coder_attested",
+                "message": f"CPT {issue['code']} is not in the note; released by {override.get('by') or 'coder'} "
+                           f"({override.get('at') or 'override'}) as performed. Keep supporting documentation on file.",
+            })
+        else:
+            kept.append(issue)
+    return {**report, "errors": kept, "warnings": [*report.get("warnings", []), *released]}
 
 
 def coding_validation(record, rows):
     """Return (pre_checks, post_checks) for an encounter's current coding state."""
     pre = pre_coding_checks(record, record_chart(record), get_record_insights(record))
-    post = post_coding_checks(rows, record_documentation(record), meat_signals=meat_signals, scrub=run_claim_scrub(record, rows))
+    post = post_coding_checks(
+        rows, record_documentation(record), meat_signals=meat_signals, scrub=run_claim_scrub(record, rows),
+        code_set_results=official_code_set_results(record, rows),
+    )
     return pre, post
+
+
+def official_code_set_results(record, rows):
+    """Validate the encounter's active codes against the official release in force on the visit date.
+
+    Returns None (check skipped) offline or before the code sets have been synced.
+    """
+    from app.db.settings import use_snowflake
+
+    if not use_snowflake():
+        return None
+    from app.db.client import StorageError
+    from app.reference import lookup
+
+    active = [row for row in rows if row.get("status") != "Rejected"]
+    date_of_service = record.get("date") or datetime.now().strftime("%d/%m/%Y")
+    try:
+        if not lookup.code_sets_loaded():
+            return None
+        icd = [row["code"] for row in active if row.get("type") == "ICD-10-CM"]
+        procedures = [row["code"] for row in active if str(row.get("type", "")).startswith("CPT")]
+        return (lookup.validate_codes(icd, date_of_service, hint="ICD")
+                + lookup.validate_codes(procedures, date_of_service, hint="CPT"))
+    except StorageError:
+        return None
 
 
 def render_validation_card(title, subtitle, checks, key):

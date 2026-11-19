@@ -25,7 +25,8 @@ COFORGE_CPT_MODEL = os.getenv("COFORGE_CPT_MODEL", "").strip() or COFORGE_MODEL
 EMBEDDING_MODEL = os.getenv(
 	"EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
 ).strip()
-EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "auto").strip().lower()
+# tfidf (default): offline, no Hugging Face. sentence_transformer / auto need requirements-ml.txt.
+EMBEDDING_BACKEND = os.getenv("EMBEDDING_BACKEND", "tfidf").strip().lower()
 EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
 RETRIEVAL_CANDIDATES = int(os.getenv("RETRIEVAL_CANDIDATES", "20"))
 RETRIEVAL_RESULTS = int(os.getenv("RETRIEVAL_RESULTS", "5"))

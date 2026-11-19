@@ -1,6 +1,5 @@
 """Billing & RCM: performed-service guardrail, draft bill and hand-off to claim generation."""
 
-import json
 import re
 from datetime import datetime
 from html import escape
@@ -12,6 +11,7 @@ from frontend.claim_generation_page import build_ambient_bill, register_generate
 from frontend.clinical_text import best_excerpt
 from frontend.coding_validation import summarize as summarize_checks
 from frontend.ehr_chart import active_drug_allergies, age_from_dob, chart_rows, format_date, latest_first, primary_coverage
+from frontend.pdf_documents import archive_pdf, bill_pdf_bytes
 from frontend.encounter_pipeline import (
     _procedure_status_inputs,
     build_estimated_hospital_bill,
@@ -348,14 +348,26 @@ def show_billing():
         "held_lines": [{"code": row["code"], "reason": row["reason"]} for row in held],
         "notice": BILLING_NOTICE,
     }
+    bill_pdf = bill_pdf_bytes(export, record) if bill_rows else b""
+    bill_pdf_name = f"bill_{export['encounter_id']}.pdf"
+    bill_archive_details = {
+        "encounter_id": str(export["encounter_id"] or ""),
+        "record_id": str(record.get("id") or ""),
+        "patient_name": str(record.get("name") or ""),
+        "metadata": {"gross_total": bill_total, "line_count": len(bill_rows), "encounter_type": encounter_type,
+                     "held_lines": export["held_lines"]},
+    }
     actions.download_button(
-        "Download draft (JSON)",
-        data=json.dumps(export, indent=2),
-        file_name=f"bill_{export['encounter_id']}.json",
-        mime="application/json",
-        icon=":material/download:",
+        "Download draft (PDF)",
+        data=bill_pdf,
+        file_name=bill_pdf_name,
+        mime="application/pdf",
+        icon=":material/picture_as_pdf:",
         disabled=not bill_rows,
         key="billing_download",
+        on_click=archive_pdf,
+        args=("DRAFT_BILL", bill_pdf_name, bill_pdf),
+        kwargs=bill_archive_details,
     )
 
     def send_to_rcm():
@@ -376,6 +388,8 @@ def show_billing():
         record["bill_generated_at"] = datetime.now().strftime("%d %b %Y %H:%M")
         record["bill_released_by"] = current_user()["username"]
         save_record(record)
+        # The released bill is archived as a PDF in the database (BILLING.BILL_DOCUMENTS).
+        archive_pdf("DRAFT_BILL", bill_pdf_name, bill_pdf_bytes(export, record), **bill_archive_details)
         log_action("claim.send", f"{record.get('id')}: {', '.join(selected_codes)} · ${bill_total:,.2f}")
         go_to("claim_generation")
 
@@ -552,3 +566,39 @@ def show_billing():
                     icon="&#9888;",
                 )
             st.caption(BILLING_NOTICE)
+        _render_archived_bills(record)
+
+
+def _render_archived_bills(record):
+    """Bill PDFs stored in the database for this consultation (BILLING.BILL_DOCUMENTS)."""
+    from app.db.settings import use_snowflake
+
+    if not use_snowflake():
+        return
+    from app.db import billing as billing_repo
+    from app.db.client import StorageError
+
+    with st.container(border=True):
+        card_title("Archived bill PDFs", "Stored in Snowflake · BILLING.BILL_DOCUMENTS")
+        try:
+            documents = billing_repo.list_documents(record_id=str(record.get("id") or ""), document_type="DRAFT_BILL")
+        except StorageError as error:
+            st.error(f"Could not load archived bills: {error}")
+            return
+        if not documents:
+            st.caption("No bill PDFs archived yet. Download the draft or send it to RCM to archive one.")
+            return
+        for document in documents:
+            created = document["created_at"]
+            label = f"{document['file_name']} · {created:%d %b %Y %H:%M} UTC · {document['created_by']} · {document['size_bytes'] / 1024:.1f} KB"
+            fetch_key = f"billing_archive_{document['document_id']}"
+            left, right = st.columns([7, 3], vertical_alignment="center")
+            left.markdown(f"<span style='font-size:.85rem'>{escape(label)}</span>", unsafe_allow_html=True)
+            if st.session_state.get(fetch_key):
+                stored = billing_repo.get_document(document["document_id"])
+                if stored:
+                    right.download_button("Save PDF", data=stored[1], file_name=stored[0], mime="application/pdf",
+                                          key=f"{fetch_key}_dl", icon=":material/download:")
+            else:
+                right.button("Fetch from database", key=f"{fetch_key}_btn", icon=":material/cloud_download:",
+                             on_click=lambda key=fetch_key: st.session_state.__setitem__(key, True))

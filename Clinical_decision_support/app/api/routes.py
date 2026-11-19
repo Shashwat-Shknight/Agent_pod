@@ -20,6 +20,7 @@ from app.api.schemas import (
 )
 from app.agent.encounter_agent import EncounterAgent
 from app.services.clinical_service import ClinicalAnalysisService
+from app.db.settings import storage_backend
 from app.services.ehr_json_service import (
     JSON_PATH,
     WORKBOOK_PATH,
@@ -80,6 +81,20 @@ def health_check():
     return {"status": "ok"}
 
 
+@router.get("/health/db", tags=["system"])
+def database_health():
+    from app.db.client import StorageError, ping
+
+    backend = storage_backend()
+    if backend != "snowflake":
+        return {"status": "ok", "storage_backend": backend}
+    try:
+        info = ping()
+    except StorageError as error:
+        raise HTTPException(status_code=503, detail=f"Snowflake unreachable: {error}") from error
+    return {"status": "ok", "storage_backend": backend, **{key.lower(): value for key, value in info.items()}}
+
+
 @router.get("/dev/diagnostics", tags=["system"])
 def development_diagnostics():
     from frontend.chargemaster import _configured_path
@@ -92,6 +107,7 @@ def development_diagnostics():
         "ehr_json_path": str(JSON_PATH),
         "chargemaster_path": str(chargemaster_path) if chargemaster_path else None,
         "ehr_json_filename": JSON_PATH.name,
+        "storage_backend": storage_backend(),
         "patient_count": len(list_patients()),
         "application_version": "1.0.0",
     }

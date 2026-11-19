@@ -1,5 +1,7 @@
 # Clinical Decision Support and Ambient Scribe
 
+> **New machine / office laptop?** Follow [OFFICE_SETUP.md](OFFICE_SETUP.md): clone, `pip install -r requirements.txt`, `python -m app.db.setup init --account ...`, run the bootstrap SQL, `python -m app.db.setup finish`. Data is stored in Snowflake (see [snowflake/README.md](snowflake/README.md)); no Hugging Face downloads are required.
+
 A local clinical documentation and decision-support prototype. The application records or accepts a clinical conversation, creates a structured encounter note with an LLM, retrieves relevant guidance from a local PDF knowledge base, and generates clinical decision-support recommendations.
 
 > This is an educational prototype. It is not a medical device and must not replace a licensed clinician, emergency services, local protocols, or professional clinical judgment.

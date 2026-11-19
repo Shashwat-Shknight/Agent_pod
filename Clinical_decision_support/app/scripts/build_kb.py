@@ -14,10 +14,10 @@ from app.core.config import VECTOR_DB_VECTORIZER
 from app.rag.chunker import chunk_word_blocks
 from app.rag.embeddings import generate_sentence_embeddings, generate_tfidf_embeddings
 from app.rag.word_loader import load_word_blocks
-from app.rag.vector_store import reset_collection, store_chunks
 
 
 def build_knowledge_base(docx_path: str = str(KNOWLEDGE_BASE_DIR / "knowledge_base_harrison.docx")):
+	VECTOR_DB_VECTORIZER.parent.mkdir(parents=True, exist_ok=True)
 	blocks = load_word_blocks(docx_path)
 	chunks = chunk_word_blocks(blocks, source=Path(docx_path).name)
 	if not chunks:
@@ -48,8 +48,10 @@ def build_knowledge_base(docx_path: str = str(KNOWLEDGE_BASE_DIR / "knowledge_ba
 			save_npz(VECTOR_DB_MATRIX, matrix)
 			KB_CHUNKS_FILE.write_text(json.dumps(chunks), encoding="utf-8")
 			print("Sentence Transformer unavailable; using sparse TF-IDF retrieval.")
-	reset_collection()
-	if backend == "sentence_transformer":
+	if backend == "sentence_transformer":  # chromadb only needed for this optional backend
+		from app.rag.vector_store import reset_collection, store_chunks
+
+		reset_collection()
 		store_chunks(chunks, embeddings)
 	KB_BACKEND_FILE.write_text(backend, encoding="utf-8")
 	print(f"Indexed Word blocks: {len(blocks)}")

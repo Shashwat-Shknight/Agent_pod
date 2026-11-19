@@ -4,6 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from app.db.settings import use_snowflake
+
 
 REQUIRED_SECTIONS = ("SUBJECTIVE", "OBJECTIVE", "ASSESSMENT", "PLAN")
 
@@ -28,6 +30,7 @@ def save_approved_soap_note(
     patient_id: str,
     soap_note: str,
     storage_dir: Path,
+    actor: str = "",
 ) -> dict[str, str]:
     missing_sections = missing_soap_sections(soap_note)
     if missing_sections:
@@ -41,6 +44,11 @@ def save_approved_soap_note(
         "soap_note": soap_note,
     }
     path = _soap_note_path(encounter_id, storage_dir)
+    if use_snowflake():
+        from app.db import soap_notes
+
+        soap_notes.save_approved(payload, actor=actor)
+        return payload
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = path.with_suffix(path.suffix + ".tmp")
     with temporary_path.open("w", encoding="utf-8") as file:
@@ -50,6 +58,10 @@ def save_approved_soap_note(
 
 
 def load_approved_soap_note(encounter_id: str, storage_dir: Path) -> dict[str, str] | None:
+    if use_snowflake():
+        from app.db import soap_notes
+
+        return soap_notes.load_approved(str(encounter_id or "")) if encounter_id else None
     try:
         path = _soap_note_path(encounter_id, storage_dir)
         with path.open("r", encoding="utf-8") as file:
@@ -67,8 +79,12 @@ def load_approved_soap_note(encounter_id: str, storage_dir: Path) -> dict[str, s
     return payload
 
 
-def delete_approved_soap_note(encounter_id: str, storage_dir: Path) -> bool:
+def delete_approved_soap_note(encounter_id: str, storage_dir: Path, actor: str = "") -> bool:
     path = _soap_note_path(encounter_id, storage_dir)
+    if use_snowflake():
+        from app.db import soap_notes
+
+        return soap_notes.withdraw(str(encounter_id), actor=actor)
     if not path.exists():
         return False
     path.unlink()

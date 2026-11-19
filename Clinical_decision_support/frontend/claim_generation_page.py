@@ -14,10 +14,13 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
+from app.db.settings import use_snowflake
+from frontend.approved_soap import load_approved_soap_note
 from frontend.chargemaster import assign_revenue_codes
 from frontend.claim_generator import determine_claim_type, determine_encounter_type
 from frontend.claim_validator import validate_claim
 from frontend.ocr_service import merge_code_results
+from frontend.pdf_documents import archive_pdf, claim_pdf_bytes
 from frontend.supporting_documents import (
     DEFAULT_DOCUMENT_ROOT,
     attach_document_ids_to_claim,
@@ -28,7 +31,7 @@ from frontend.supporting_documents import (
 )
 from frontend.ui.components import badge, card_title, page_title, render_banner, render_html_table, render_tiles
 from frontend.ui.shell import render_page
-from frontend.ui.state import can_open, go_to
+from frontend.ui.state import can_open, current_user, go_to
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OPD_SPLIT_VERSION = 2
@@ -213,17 +216,8 @@ def _supporting_document_sources(
     for encounter_id in dict.fromkeys(value for value in encounter_ids if value):
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", encounter_id):
             continue
-        path = storage_dir / f"{encounter_id}_soap.json"
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if (
-            isinstance(payload, dict)
-            and payload.get("encounter_id") == encounter_id
-            and payload.get("status") == "approved"
-            and _text(payload.get("soap_note"))
-        ):
+        payload = load_approved_soap_note(encounter_id, storage_dir)
+        if payload and _text(payload.get("soap_note")):
             sources.append(("Approved SOAP Note", f"SOAP Note {payload['soap_note']}"))
 
     if session_state is not None:
@@ -346,17 +340,8 @@ def _load_approved_soap_note(
     for encounter_id in dict.fromkeys(value for value in encounter_ids if value):
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", encounter_id):
             continue
-        path = storage_dir / f"{encounter_id}_soap.json"
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        if (
-            isinstance(payload, dict)
-            and payload.get("encounter_id") == encounter_id
-            and payload.get("status") == "approved"
-            and _text(payload.get("soap_note"))
-        ):
+        payload = load_approved_soap_note(encounter_id, storage_dir)
+        if payload and _text(payload.get("soap_note")):
             return _text(payload["soap_note"])
     return ""
 
@@ -437,6 +422,13 @@ def register_generated_bill(bill: dict[str, Any], source: str) -> None:
         "source": source,
         "bill": _json_value(bill),
     }
+    if use_snowflake():
+        from app.db import billing as billing_repo
+
+        billing_repo.save_generated_bill(
+            f"{source}:{encounter_id}", source, generated_bills[f"{source}:{encounter_id}"]["bill"],
+            actor=current_user()["username"],
+        )
 
 
 def _rendering_provider(bill: dict[str, Any], patient: dict[str, Any]) -> dict[str, str]:
@@ -921,8 +913,24 @@ def _generate_claims(
             if not (_text(saved.get("Encounter ID")) == encounter_id and saved.get("Claim Type") == target_type)
         ]
         claims.append(claim)
+        if use_snowflake():
+            from app.db import billing as billing_repo
+
+            billing_repo.save_claim(_json_value(claim), actor=current_user()["username"])
         st.session_state.setdefault("claim_validation_reports", {}).pop(claim["Claim ID"], None)
         st.session_state.latest_generated_claim_id = claim["Claim ID"]
+
+
+def _code_set_validator():
+    """Official ICD-10-CM / HCPCS validation with a live NLM confirmation, when the code sets are synced."""
+    if not use_snowflake():
+        return None
+    from app.reference import lookup
+
+    try:
+        return lookup.validate_for_claim if lookup.code_sets_loaded() else None
+    except Exception:  # noqa: BLE001 - claim validation still runs its other checks
+        return None
 
 
 def _choice_input(column, label, options, default, key, placeholder):
@@ -1199,9 +1207,13 @@ def show_claim_generation_page() -> None:
                 continue
             attach_document_ids_to_claim(claim, document_repository)
             document_results = validate_claim_documents(claim, document_repository, _document_requirement)
-            report = validate_claim(claim, document_results=document_results)
+            report = validate_claim(claim, document_results=document_results, code_set_validator=_code_set_validator())
             report["Supporting Document Results"] = document_results
             validation_reports[claim["Claim ID"]] = report
+            if use_snowflake():
+                from app.db import billing as billing_repo
+
+                billing_repo.save_validation_report(claim["Claim ID"], _json_value(report))
 
     if not claims:
         return
@@ -1229,10 +1241,19 @@ def show_claim_generation_page() -> None:
         for selected_claim in selected_claims:
             patient_slug = re.sub(r"[^A-Za-z0-9_-]+", "_", _text(selected_claim["Patient Information"].get("Patient Name")) or "patient").strip("_") or "patient"
             with st.container(horizontal=True, gap="small"):
+                claim_pdf = claim_pdf_bytes(selected_claim)
+                claim_pdf_name = f"{selected_claim['Claim ID']}_{patient_slug}.pdf"
                 st.download_button(
-                    f"Download {selected_claim['Claim Type']} (JSON)", data=json.dumps(selected_claim, indent=2, ensure_ascii=False),
-                    file_name=f"{selected_claim['Claim ID']}_{patient_slug}.json", mime="application/json",
-                    key=f"download_claim_json_{selected_claim['Claim ID']}", icon=":material/download:",
+                    f"Download {selected_claim['Claim Type']} (PDF)", data=claim_pdf,
+                    file_name=claim_pdf_name, mime="application/pdf",
+                    key=f"download_claim_pdf_{selected_claim['Claim ID']}", icon=":material/picture_as_pdf:",
+                    on_click=archive_pdf, args=("CLAIM", claim_pdf_name, claim_pdf),
+                    kwargs={
+                        "encounter_id": _text(selected_claim.get("Encounter ID")),
+                        "patient_name": _text(selected_claim["Patient Information"].get("Patient Name")),
+                        "reference_id": _text(selected_claim.get("Claim ID")),
+                        "metadata": {"claim_type": selected_claim.get("Claim Type"), "status": selected_claim.get("Status")},
+                    },
                 )
                 st.download_button(
                     f"Download {selected_claim['Claim Type']} (TXT)", data=_claim_text(selected_claim),

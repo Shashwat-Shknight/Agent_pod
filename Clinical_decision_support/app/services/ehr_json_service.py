@@ -13,6 +13,8 @@ from typing import Any
 
 from openpyxl import load_workbook
 
+from app.db.settings import use_snowflake
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WORKBOOK_PATH = PROJECT_ROOT / "Epic_Inspired_USA_50_Patient_Demo.xlsx"
 JSON_PATH = PROJECT_ROOT / "Epic_Inspired_USA_50_Patient_Demo_Athena_Care_Gap.json"
@@ -110,8 +112,37 @@ def _workbook_payload() -> dict[str, Any]:
     }
 
 
+def _validate_store(payload: Any) -> dict[str, Any]:
+    patient_sheet = payload.get("sheets", {}).get("Patient_Master") if isinstance(payload, dict) else None
+    if (
+        not isinstance(payload, dict)
+        or not isinstance(payload.get("sheets"), dict)
+        or not isinstance(patient_sheet, dict)
+        or not isinstance(patient_sheet.get("records"), list)
+    ):
+        raise RuntimeError("EHR store must contain a workbook-shaped 'sheets' object.")
+    return payload
+
+
+def _ensure_snowflake_store() -> dict[str, Any]:
+    """EHR lives in Snowflake (EHR.SHEETS). First run seeds it from the bundled chart file."""
+    from app.db import ehr_store
+
+    payload = ehr_store.load_payload()
+    if payload is not None:
+        return _validate_store(payload)
+    if JSON_PATH.is_file():
+        seed = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    else:
+        seed = _workbook_payload()
+    ehr_store.save_payload(_validate_store(seed))
+    return seed
+
+
 def ensure_json_store() -> dict[str, Any]:
     with _STORE_LOCK:
+        if use_snowflake():
+            return _ensure_snowflake_store()
         if JSON_PATH.is_file():
             try:
                 payload = json.loads(JSON_PATH.read_text(encoding="utf-8"))
@@ -137,6 +168,11 @@ def _read_store() -> dict[str, Any]:
 
 def _write_store(payload: dict[str, Any]) -> None:
     with _STORE_LOCK:
+        if use_snowflake():
+            from app.db import ehr_store
+
+            ehr_store.save_payload(payload)
+            return
         _atomic_write(payload)
 
 

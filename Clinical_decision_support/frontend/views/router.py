@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from app.db.client import StorageError
 from frontend import access_control as ac
 from frontend.admin_console import show_admin_dashboard
 from frontend.claim_generation_page import show_claim_generation_page
@@ -91,7 +92,13 @@ PAGES = {
 
 def run_app():
     """Authenticate, enforce page permissions, then render the requested page."""
-    store = ac.load_store(ACCESS_STORE_PATH)
+    try:
+        store = ac.load_store(ACCESS_STORE_PATH)
+    except StorageError as error:
+        st.error("The NuuCare database is unreachable, so sign-in is unavailable.", icon=":material/cloud_off:")
+        st.caption(str(error))
+        st.button("Retry", icon=":material/refresh:", type="primary")
+        return
     ACCESS["store"] = store
     ACCESS["user"] = None
     if ac.needs_bootstrap(store):

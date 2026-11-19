@@ -5,6 +5,9 @@ from copy import deepcopy
 
 import streamlit as st
 
+from app.db import encounters as encounter_repo
+from app.db.client import StorageError
+from app.db.settings import use_snowflake
 from frontend import access_control as ac
 from frontend.encounter_pipeline import get_record_insights
 from frontend.settings import ACCESS_STORE_PATH, DB_FILE
@@ -64,8 +67,19 @@ class _SessionAccess:
 ACCESS = _SessionAccess()
 
 
-# ---------- Consultation records (clinical_records.json) ----------
+# ---------- Consultation records (Snowflake CLINICAL.ENCOUNTERS, or clinical_records.json offline) ----------
+def _actor():
+    user = ACCESS["user"] if "_access_context" in st.session_state else None
+    return (user or {}).get("username") or "system"
+
+
 def load_db():
+    if use_snowflake():
+        try:
+            return encounter_repo.list_encounters()
+        except StorageError as error:
+            st.session_state["storage_error"] = str(error)
+            return []
     if not DB_FILE.exists():
         return []
     try:
@@ -77,6 +91,9 @@ def load_db():
 
 
 def save_db(records):
+    if use_snowflake():
+        _persist(lambda: encounter_repo.save_encounters(records, _actor()))
+        return
     temp_path = DB_FILE.with_suffix(".tmp")
     with temp_path.open("w", encoding="utf-8") as file:
         json.dump({"records": records}, file, indent=4, ensure_ascii=False)
@@ -88,16 +105,47 @@ def save_record(record):
         if existing.get("id") == record.get("id"):
             st.session_state.records[index] = record
             break
+    if use_snowflake():
+        _persist(lambda: encounter_repo.save_encounter(record, _actor()))
+        return
     save_db(st.session_state.records)
+
+
+def _persist(write):
+    """Run a database write; on failure keep the session state and surface the error loudly."""
+    try:
+        write()
+        st.session_state.pop("storage_error", None)
+    except StorageError as error:
+        st.session_state["storage_error"] = str(error)
+        st.error(f"Could not save to the database: {error}", icon=":material/cloud_off:")
 
 
 def init_session():
     """Seed every session key once; records are loaded from disk on first run."""
     if "records" not in st.session_state:
         st.session_state.records = load_db()
+        if use_snowflake():
+            _restore_billing_state()
     for key, value in SESSION_DEFAULTS.items():
         if key not in st.session_state:
             st.session_state[key] = deepcopy(value)
+    if st.session_state.get("storage_error"):
+        st.error(f"Database unavailable - changes cannot be saved: {st.session_state['storage_error']}",
+                 icon=":material/cloud_off:")
+
+
+def _restore_billing_state():
+    """Released bills and generated claims outlive the browser session (BILLING schema)."""
+    from app.db import billing as billing_repo
+
+    try:
+        st.session_state.claim_generation_bills = billing_repo.load_generated_bills()
+        claims, reports = billing_repo.load_claims()
+        st.session_state.generated_claim_records = claims
+        st.session_state.claim_validation_reports = reports
+    except StorageError as error:
+        st.session_state["storage_error"] = str(error)
 
 
 # ---------- Signed-in user and permissions ----------

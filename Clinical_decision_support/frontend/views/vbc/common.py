@@ -83,7 +83,19 @@ def load_export() -> tuple[dict, str]:
     export = fetch_ehr_export()
     if export is not None:
         return export, "EHR backend · live"
-    if EHR_STORE_FILE.is_file():
+    from app.db.settings import use_snowflake
+
+    if use_snowflake():
+        from app.db import ehr_store
+        from app.db.client import StorageError
+
+        try:
+            payload = ehr_store.load_payload()
+        except StorageError:
+            payload = None
+        if payload:
+            return payload, "EHR database · API offline (read-only)"
+    elif EHR_STORE_FILE.is_file():
         return _file_export(str(EHR_STORE_FILE), EHR_STORE_FILE.stat().st_mtime), "EHR file · backend offline (read-only)"
     return {"sheets": {}}, "No EHR data"
 

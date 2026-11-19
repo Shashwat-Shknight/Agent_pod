@@ -16,6 +16,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from app.db.settings import use_snowflake
+
 SCHEMA = 1
 _LOCK = threading.RLock()
 AUDIT_FAMILIES = {
@@ -80,7 +82,11 @@ def _default(value):
 def load_state(path: str | Path) -> dict[str, Any]:
     path = Path(path)
     state = empty_state()
-    if path.is_file():
+    if use_snowflake():
+        from app.db import vbc_state
+
+        state.update(vbc_state.load(path.stem) or {})
+    elif path.is_file():
         try:
             loaded = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
@@ -95,6 +101,12 @@ def load_state(path: str | Path) -> dict[str, Any]:
 def save_state(path: str | Path, state: dict[str, Any]) -> None:
     path = Path(path)
     with _LOCK:
+        if use_snowflake():
+            from app.db import vbc_state
+
+            state["revision"] = int(state.get("revision", 0)) + 1
+            vbc_state.save(path.stem, state, default=_default)
+            return
         path.parent.mkdir(parents=True, exist_ok=True)
         state["revision"] = int(state.get("revision", 0)) + 1
         temp = path.with_suffix(".tmp")

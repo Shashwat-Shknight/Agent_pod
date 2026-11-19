@@ -28,7 +28,9 @@ try:
         is_explicitly_performed,
     )
     from icd10_coder import get_icd10_candidate_sets, get_icd10_codes
+    from code_matcher import ct_body_site
 except ModuleNotFoundError:
+    ct_body_site = lambda _documentation: None  # noqa: E731
     classify_medical_item = None
     classify_procedure_status = None
     extract_performed_procedures = None
@@ -242,6 +244,23 @@ def get_code_suggestions(insights, documentation=None):
     return {"icd10": icd_results or [], "cpt": cpt_results or []}
 
 
+def dedupe_code_results(results):
+    """Keep the first suggestion per code; the same service can be found from two wordings."""
+    if not isinstance(results, dict):
+        return results
+    deduped = dict(results)
+    for kind, field in (("icd10", "ICD-10 Code"), ("cpt", "CPT/HCPCS Code")):
+        seen, kept = set(), []
+        for item in results.get(kind) or []:
+            code = str(item.get(field) or "").strip().upper() if isinstance(item, dict) else ""
+            if code and code in seen:
+                continue
+            seen.add(code)
+            kept.append(item)
+        deduped[kind] = kept
+    return deduped
+
+
 def get_backend_code_suggestions(insights, documentation=""):
     """Use the backend coding contract, falling back to the local matcher offline."""
     try:
@@ -273,13 +292,15 @@ def get_backend_code_suggestions(insights, documentation=""):
                 procedures.append(item)
             else:
                 conditions.append(item)
-        documentation_lower = documentation.lower()
-        if "ct scan" in documentation_lower and "head" in documentation_lower:
+        site = ct_body_site(documentation)
+        if site == "head":
             procedures.append("CT scan of head without contrast")
+        elif site == "chest":
+            procedures.append("CT scan of chest")
         if is_chest_xray_multi_view_documented(documentation):
             procedures = [item for item in procedures if "chest x-ray" not in item.lower() and "chest x ray" not in item.lower()]
             procedures.append("Chest x ray 2 views")
-        return HealthcareApiClient().match_codes(conditions, procedures, documentation)
+        return dedupe_code_results(HealthcareApiClient().match_codes(conditions, procedures, documentation))
     except (RuntimeError, requests.exceptions.HTTPError):
         return get_code_suggestions(insights, documentation)
 

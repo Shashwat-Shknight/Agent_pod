@@ -12,8 +12,24 @@ from app.core.config import RETRIEVAL_CANDIDATES
 from app.core.config import RETRIEVAL_RESULTS
 from app.core.config import VECTOR_DB_MATRIX
 from app.core.config import VECTOR_DB_VECTORIZER
+import threading
+
 from app.rag.embeddings import get_embedding_model
-from app.rag.vector_store import collection
+
+_BUILD_LOCK = threading.Lock()
+
+
+def _ensure_index():
+    """Build the knowledge-base index on first use (fresh clone): TF-IDF unless configured otherwise.
+
+    The source document (knowledge_base/*.docx) is in git; the index (chroma_db/) is a local artifact.
+    """
+    with _BUILD_LOCK:
+        if KB_BACKEND_FILE.exists():
+            return
+        from app.scripts.build_kb import build_knowledge_base
+
+        build_knowledge_base()
 
 
 def _token_set(text):
@@ -33,9 +49,13 @@ def _deduplicate(chunks):
 
 
 def retrieve_chunks(query, candidates=RETRIEVAL_CANDIDATES, results=RETRIEVAL_RESULTS):
-    backend = KB_BACKEND_FILE.read_text(encoding="utf-8").strip() if KB_BACKEND_FILE.exists() else "sentence_transformer"
+    _ensure_index()
+    backend = KB_BACKEND_FILE.read_text(encoding="utf-8").strip() if KB_BACKEND_FILE.exists() else "tfidf"
     if backend == "tfidf":
         return _retrieve_tfidf(query, results)
+    from app.rag.vector_store import get_collection
+
+    collection = get_collection()
     if collection.count() == 0:
         raise FileNotFoundError("Knowledge base is empty. Please run: python -m app.scripts.build_kb")
 

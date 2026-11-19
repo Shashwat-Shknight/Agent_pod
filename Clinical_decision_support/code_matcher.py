@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 import re
 from pathlib import Path
 
@@ -508,12 +509,38 @@ def is_planned_diagnostic_test(term, evidence=""):
     ))
 
 
+_CT_SITES = {"head": "head", "brain": "head", "skull": "head", "chest": "chest", "thorax": "chest",
+             "thoracic": "chest", "lung": "chest", "lungs": "chest"}
+_CT_SITE_WORDS = "|".join(_CT_SITES)
+
+
+def ct_body_site(documentation):
+    """Body site of a documented CT scan: 'head', 'chest' or None.
+
+    Uses whole words next to the CT mention ("CT scan of the chest", "chest CT", "CT head"), so symptoms such
+    as "headache" never turn a chest CT into a head CT.
+    """
+    text = re.sub(r"[‐-―−]", "-", str(documentation or "").lower())
+    text = re.sub(r"\bcomputed tomography\b|\bcat scan\b", "ct", text)
+    explicit = re.search(
+        rf"\bct(?:\s+scan)?(?:\s+of)?(?:\s+the)?\s+({_CT_SITE_WORDS})\b|\b({_CT_SITE_WORDS})\s+ct\b", text
+    )
+    if explicit:
+        return _CT_SITES[explicit.group(1) or explicit.group(2)]
+    if re.search(r"\bct\b", text) and re.search(r"\bhead\b", text):  # "head" as a word, never "headache"
+        return "head"
+    return None
+
+
 def canonicalize_documented_procedure(term, documentation):
     """Use nearby documentation to disambiguate generic imaging terms."""
     normalized_term = normalize_text(term)
     normalized_documentation = normalize_text(documentation)
-    if normalized_term in {"ct scan", "ct"} and "head" in normalized_documentation:
+    site = ct_body_site(documentation) if normalized_term in {"ct scan", "ct"} else None
+    if site == "head":
         return "ct scan of head without contrast"
+    if site == "chest":
+        return "ct scan of chest"
     if normalized_term in {"chest x ray", "x ray"} and "two view" in normalized_documentation:
         return "chest x ray 2 views"
     return term
@@ -750,18 +777,46 @@ def find_column(dataframe, possible_names):
 # ICD-10 DATASET
 # ============================================================
 
+_icd10_loaded_at = None
+LIVE_ICD_REFRESH_SECONDS = 6 * 3600
+
+
+def _live_icd10_records():
+    """Billable ICD-10-CM codes in force today from the synced official release (Snowflake REFERENCE schema).
+
+    Returns None when Snowflake is not the storage backend or nothing has been synced yet, in which case the
+    bundled JSON file is used as before.
+    """
+    try:
+        from app.db.settings import use_snowflake
+
+        if not use_snowflake():
+            return None
+        from app.reference import lookup
+
+        return lookup.current_icd10cm_codes() or None
+    except Exception as error:  # noqa: BLE001 - the coding engine must still work offline
+        logger.warning("Live ICD-10-CM code set unavailable, using bundled JSON: %s", error)
+        return None
+
+
 def load_icd10_data(force_reload=False):
     """
     Load and normalize the ICD-10 dataset.
     """
 
-    global _icd10_dataframe
+    global _icd10_dataframe, _icd10_loaded_at
 
-    if _icd10_dataframe is not None and not force_reload:
+    # A live dictionary is refreshed every few hours so long-running processes pick up new releases.
+    stale = _icd10_loaded_at is not None and time.monotonic() - _icd10_loaded_at > LIVE_ICD_REFRESH_SECONDS
+    if _icd10_dataframe is not None and not force_reload and not stale:
         return _icd10_dataframe
 
-    file_path = find_json_file(ICD10_FILE_NAMES)
-    records = read_json_records(file_path)
+    records = _live_icd10_records()
+    live = bool(records)
+    if not live:
+        file_path = find_json_file(ICD10_FILE_NAMES)
+        records = read_json_records(file_path)
 
     if not records:
         print("No ICD-10 records were loaded.")
@@ -833,8 +888,9 @@ def load_icd10_data(force_reload=False):
         & (dataframe["search_text"] != "")
     ].copy()
 
+    # Live dictionaries map several wordings (code + its category header) to one billable code.
     dataframe.drop_duplicates(
-        subset=["code"],
+        subset=["code", "search_text"] if live else ["code"],
         keep="first",
         inplace=True,
     )
@@ -842,8 +898,9 @@ def load_icd10_data(force_reload=False):
     dataframe.reset_index(drop=True, inplace=True)
 
     _icd10_dataframe = dataframe
+    _icd10_loaded_at = time.monotonic() if live else None
 
-    print(f"Loaded {len(dataframe)} unique ICD-10 codes.")
+    print(f"Loaded {len(dataframe)} ICD-10 entries ({'live official code set' if live else 'bundled JSON'}).")
 
     return _icd10_dataframe
 
@@ -1129,8 +1186,11 @@ def _row_payload(row, code_key, description_key):
 
 
 def _score_candidate(query, description, generic_symptom=False):
-    query = normalize_clinical_term(query)
-    description = normalize_text(description)
+    return _score_normalized(normalize_clinical_term(query), normalize_text(description), generic_symptom)
+
+
+def _score_normalized(query, description, generic_symptom=False):
+    """_score_candidate on already-normalized text (the dataset's precomputed search_text)."""
     if not query or not description:
         return 0.0
     ratio = fuzz.ratio(query, description)
@@ -1157,20 +1217,25 @@ def _filter_icd_family(dataframe, normalized_term):
 def _candidate_rows(dataframe, query, top_n, generic_symptom=False):
     if dataframe is None or dataframe.empty:
         return []
-    scored = []
-    for _, row in dataframe.iterrows():
-        code = normalize_code(row.get("code", ""))
-        description = str(row.get("description", "")).strip()
-        score = _score_candidate(query, description, generic_symptom=generic_symptom)
-        if score:
-            scored.append({
+    best = {}
+    normalized_query = normalize_clinical_term(query)
+    descriptions = dataframe["description"].astype(str).str.strip().tolist()
+    search_texts = (dataframe["search_text"].tolist() if "search_text" in dataframe.columns
+                    else [normalize_text(text) for text in descriptions])
+    displays = dataframe["display_description"].tolist() if "display_description" in dataframe.columns else descriptions
+    for raw_code, description, search_text, display in zip(dataframe["code"].tolist(), descriptions, search_texts, displays):
+        code = normalize_code(raw_code)
+        score = _score_normalized(normalized_query, search_text, generic_symptom)
+        if score and score > best.get(code, {}).get("match_score", -1):
+            best[code] = {
                 "code": code,
-                "description": description,
+                # Live dictionaries score on the category wording but report the billable code's own text.
+                "description": str(display or description).strip(),
                 "match_score": score,
                 "clinical_compatibility": "compatible",
                 "reason": "Matches the normalized documented concept within the allowed code family.",
-            })
-    return sorted(scored, key=lambda item: (-item["match_score"], item["code"]))[:top_n]
+            }
+    return sorted(best.values(), key=lambda item: (-item["match_score"], item["code"]))[:top_n]
 
 
 def _review_result(term, normalized_term, reason, alternatives=None):

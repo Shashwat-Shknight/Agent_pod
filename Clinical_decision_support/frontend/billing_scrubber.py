@@ -5,16 +5,18 @@ from decimal import Decimal
 from typing import Any
 
 from frontend.chargemaster import price_cpt_bill_lines
+from code_matcher import ct_body_site
 from cpt_coder import ADDITIONAL_CPT_FALLBACKS, CHARGEMASTER_CPT_SERVICES, COMMON_CPT_FALLBACKS, load_cpt_data
 
 
-IMAGING_CODES = {"71045", "71046", "70450", "70460", "71250"}
+IMAGING_CODES = {"71045", "71046", "70450", "70460", "71250", "71260"}
 DOCUMENTED_CPT_TERMS = {
     "71045": ("chest x ray", "chest radiograph"),
     "71046": ("chest x ray", "chest radiograph"),
-    "70450": ("ct head", "ct scan of head", "ct scan head", "computed tomography head"),
-    "70460": ("ct head", "ct scan of head", "ct scan head", "computed tomography head"),
-    "71250": ("ct chest", "ct scan of chest", "computed tomography chest"),
+    "70450": ("ct head", "ct scan of head", "ct scan head", "ct of head", "head ct", "computed tomography head"),
+    "70460": ("ct head", "ct scan of head", "ct scan head", "ct of head", "head ct", "computed tomography head"),
+    "71250": ("ct chest", "ct scan of chest", "ct scan chest", "ct of chest", "chest ct", "computed tomography chest"),
+    "71260": ("ct chest", "ct scan of chest", "ct scan chest", "ct of chest", "chest ct", "computed tomography chest"),
     "83036": ("a1c", "hba1c", "hemoglobin a1c"),
     "80061": ("lipid panel", "cholesterol panel", "cholesterol testing"),
     "80053": ("comprehensive metabolic panel", "cmp"),
@@ -46,7 +48,9 @@ def _documentation_text(documentation: str) -> str:
     text = str(documentation or "").casefold()
     text = re.sub(r"\bx[ -]?ray\b|\bxray\b", "x ray", text)
     text = re.sub(r"\bchest radiographs?\b", "chest x ray", text)
-    return re.sub(r"[^a-z0-9]+", " ", text).strip()
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    # Articles must not hide a documented service ("CT scan of the chest" supports "ct scan of chest").
+    return re.sub(r"\s+", " ", re.sub(r"\b(?:the|a|an)\b", " ", text)).strip()
 
 
 def _expected_imaging(documentation: str) -> list[tuple[str, str]]:
@@ -57,18 +61,24 @@ def _expected_imaging(documentation: str) -> list[tuple[str, str]]:
         expected.append(("71046", "Two-view chest X-ray"))
     elif chest_xray and re.search(r"\b(?:one|1)\s*(?:views?|view)\b", text):
         expected.append(("71045", "Single-view chest X-ray"))
-    if "ct head" in text or ("ct scan" in text and "head" in text):
+    site = ct_body_site(documentation)  # whole-word body site: "headache" is not "head"
+    if site == "head":
         if "without contrast" in text:
             expected.append(("70450", "CT head without contrast"))
         elif "with contrast" in text:
             expected.append(("70460", "CT head with contrast"))
+    elif site == "chest":
+        if re.search(r"(?<!without )\bwith contrast\b", text):
+            expected.append(("71260", "CT chest with contrast"))
+        else:  # coding convention: contrast not documented -> without contrast
+            expected.append(("71250", "CT chest without contrast"))
     return expected
 
 
 def _imaging_family(code: str) -> str | None:
     if code in {"71045", "71046"}:
         return "chest_xray"
-    if code in {"70450", "70460", "71250"}:
+    if code in {"70450", "70460", "71250", "71260"}:
         return "ct_imaging"
     return None
 

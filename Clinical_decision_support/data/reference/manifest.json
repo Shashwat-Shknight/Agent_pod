@@ -1,0 +1,18 @@
+{
+  "ICD10CM": {
+    "release_id": "FY2027",
+    "effective_from": "2026-10-01",
+    "file": "icd10cm-order-FY2027.txt.gz",
+    "source": "CDC/NCHS ICD-10-CM",
+    "source_url": "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2027/icd10cm-code-descriptions-2027.zip",
+    "codes": 98403
+  },
+  "HCPCS": {
+    "release_id": "NLM-2026-11-19",
+    "effective_from": "2026-11-19",
+    "file": "hcpcs-NLM-2026-11-19.json.gz",
+    "source": "CMS HCPCS via NLM Clinical Tables",
+    "source_url": "https://clinicaltables.nlm.nih.gov/api/hcpcs/v3/search",
+    "codes": 8769
+  }
+}

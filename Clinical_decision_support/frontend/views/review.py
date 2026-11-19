@@ -7,7 +7,9 @@ import pandas as pd
 import requests
 import streamlit as st
 
+from app.db.client import StorageError
 from frontend import access_control as ac
+from frontend.approved_soap import save_approved_soap_note
 from frontend.api_client import HealthcareApiClient
 from frontend.clinical_text import (
     append_selected_insights_to_note,
@@ -18,7 +20,7 @@ from frontend.clinical_text import (
 )
 from frontend.ehr_chart import care_gaps, medication_safety_checks, primary_coverage
 from frontend.encounter_pipeline import MASTER_INSIGHTS, get_record_insights
-from frontend.settings import ANALYSIS_VERSION
+from frontend.settings import ANALYSIS_VERSION, APPROVED_SOAP_DIR
 from frontend.ui.components import (
     badge,
     card_title,
@@ -59,6 +61,22 @@ from frontend.views.ocr_widgets import render_document_ocr
 def _log_history(record, action):
     history = record.setdefault("review_history", [])
     history.append({"at": datetime.now().strftime("%d %b %Y %H:%M"), "action": action})
+
+
+def _archive_approved_soap(record):
+    """Keep a versioned copy of the signed note (CLINICAL.SOAP_NOTES / data/approved_soap_notes)."""
+    try:
+        save_approved_soap_note(
+            record.get("ehr_encounter_id") or record.get("id"),
+            record.get("ehr_patient_id") or record.get("patient_id") or "",
+            record.get("summary") or "",
+            APPROVED_SOAP_DIR,
+            actor=current_user()["username"],
+        )
+    except ValueError as error:
+        st.warning(f"Note signed, but it was not archived as an approved SOAP note: {error}")
+    except StorageError as error:
+        st.error(f"Note signed, but the approved SOAP note could not be saved to the database: {error}")
 
 
 def _save_note_draft(record):
@@ -391,6 +409,8 @@ def _review_step_soap(record, is_approved, can_edit=True, can_sign=True):
             _log_history(record, f"Note signed and locked by {current_user()['name']}")
             log_action("note.sign", f"{record.get('id')} {record.get('name', '')}")
         save_record(record)
+        if approved:
+            _archive_approved_soap(record)
         try:
             update_ehr_clinical_note(record, approved=approved)
         except (RuntimeError, requests.exceptions.RequestException, ValueError) as error:

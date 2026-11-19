@@ -123,8 +123,12 @@ def validate_bill(bill, claim_type):
     return issues
 
 
-def validate_claim(claim, document_results=None):
-    """Run lightweight required-field, documentation, and sample-rule checks."""
+def validate_claim(claim, document_results=None, code_set_validator=None):
+    """Run lightweight required-field, documentation, and sample-rule checks.
+
+    ``code_set_validator(codes, date_of_service, hint)`` (optional) checks codes against the official
+    ICD-10-CM / HCPCS release in force on the date of service (app.reference.lookup.validate_codes).
+    """
     claim = claim if isinstance(claim, dict) else {}
     errors = []
     warnings = []
@@ -340,6 +344,29 @@ def validate_claim(claim, document_results=None):
             ),
             "WARNING",
         )
+
+    if code_set_validator is not None:
+        try:
+            results = (code_set_validator(diagnosis_codes, date_of_service, "ICD")
+                       + code_set_validator(cpt_codes, date_of_service, "CPT"))
+        except Exception as error:  # noqa: BLE001 - reported, never silently passed
+            add_check("Code Set Validation", "Official code sets", False,
+                      f"Official code-set check unavailable: {error}", "WARNING")
+            results = []
+        for result in results:
+            if result.get("system") == "CPT":
+                add_check("Code Set Validation", f"{result['code']} (CPT)", True,
+                          f"CPT {result['code']}: not verifiable without an AMA CPT licence.")
+                continue
+            replacements = ", ".join(item["code"] for item in result.get("replacements", [])[:4])
+            live = result.get("live_confirmed")
+            suffix = " Confirmed live with NLM." if live else " (NLM live check unavailable.)" if live is None and result["ok"] else ""
+            add_check(
+                "Code Set Validation",
+                f"{result['code']} ({'ICD-10-CM' if result.get('system') == 'ICD10CM' else result.get('system') or 'code'})",
+                bool(result["ok"]),
+                f"{result['code']}: {result['message']}" + (f" Use {replacements}." if replacements else "") + suffix,
+            )
 
     score = max(0, 100 - 20 * len(errors) - 5 * len(warnings))
     return {

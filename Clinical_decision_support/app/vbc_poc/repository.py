@@ -11,10 +11,12 @@ import json
 import os
 import threading
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+
+from app.db.settings import use_snowflake
 
 STATE_ENV = "VBC_POC_STATE"
 DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "vbc_poc_state.json"
@@ -48,6 +50,12 @@ def _default(value):
 
 def load(path: Path | None = None) -> dict[str, Any]:
     path = path or state_path()
+    if use_snowflake():
+        from app.db import vbc_state
+
+        state = empty_state()
+        state.update(vbc_state.load(Path(path).stem) or {})
+        return state
     if not path.is_file():
         return empty_state()
     try:
@@ -60,6 +68,12 @@ def load(path: Path | None = None) -> dict[str, Any]:
 
 
 def _save(path: Path, state: dict[str, Any]) -> None:
+    if use_snowflake():
+        from app.db import vbc_state
+
+        state["revision"] = int(state.get("revision", 0)) + 1
+        vbc_state.save(Path(path).stem, state, default=_default)
+        return
     path.parent.mkdir(parents=True, exist_ok=True)
     state["revision"] = int(state.get("revision", 0)) + 1
     temp = path.with_suffix(".tmp")
@@ -96,7 +110,8 @@ def _file_lock(path: Path, timeout: float = 10.0):
 @contextmanager
 def transaction(path: Path | None = None):
     path = path or state_path()
-    with _LOCAL, _file_lock(path):
+    lock = nullcontext() if use_snowflake() else _file_lock(path)
+    with _LOCAL, lock:
         state = load(path)
         yield state
         _save(path, state)

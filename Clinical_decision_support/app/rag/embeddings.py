@@ -1,15 +1,35 @@
+"""Text embeddings for the knowledge base.
+
+Default backend is TF-IDF (scikit-learn): fully offline, no model download, no Hugging Face.
+The optional ``sentence_transformer`` backend needs ``pip install -r requirements-ml.txt`` and
+Hugging Face access; it is imported lazily so the app runs without it.
+"""
+
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sentence_transformers import SentenceTransformer
 
 from app.core.config import EMBEDDING_MODEL
 
-
 _model = None
+
+
+def sentence_transformers_available() -> bool:
+    try:
+        import sentence_transformers  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def get_embedding_model():
     global _model
     if _model is None:
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as error:
+            raise RuntimeError(
+                "sentence-transformers is not installed. Use EMBEDDING_BACKEND=tfidf (default) or "
+                "pip install -r requirements-ml.txt"
+            ) from error
         _model = SentenceTransformer(EMBEDDING_MODEL)
     return _model
 
