@@ -68,6 +68,8 @@ def persist_consultation_cpt_results(record, cpt_results):
 HCC_V28_DEMO = {
     "E10.9": "HCC 38",
     "E11.9": "HCC 38",
+    "E11.42": "HCC 37",
+    "E11.65": "HCC 38",
     "E66.01": "HCC 48",
     "I48.91": "HCC 238",
     "I50.9": "HCC 226",
