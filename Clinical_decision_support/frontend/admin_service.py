@@ -102,6 +102,18 @@ VBC_APPROVERS = {
 }
 # Read-only roles never receive Edit, even where they are primary users.
 READ_ONLY_ROLES = ("Auditor", "Executive")
+# Segregation of duties: the treating clinician documents and signs; certified coders assign codes.
+# Clinician roles never get the coding screen, whatever the stored permission matrix says.
+CLINICIAN_ROLES = ("Clinical Reviewer", "Physician / APP")
+CODER_ONLY_MODULES = ("Codes",)
+
+
+def enforce_segregation(role, permissions):
+    """Remove coder-only modules from a clinician role's permissions (in place); returns them."""
+    if role in CLINICIAN_ROLES:
+        for module in CODER_ONLY_MODULES:
+            permissions[module] = {action: False for action in ACTIONS}
+    return permissions
 # Existing app roles that act as specification roles on the VBC screens.
 ROLE_ALIASES = {"Clinical Reviewer": "Physician / APP"}
 
@@ -168,6 +180,7 @@ def _role_permissions():
             _grant_clinical(role, permissions)
             _grant_vbc(role, permissions)
             _grant_poc(role, permissions)
+            enforce_segregation(role, permissions)
         defaults[role] = permissions
     return defaults
 

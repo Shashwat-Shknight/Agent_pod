@@ -1172,6 +1172,13 @@ def show_claim_generation_page() -> None:
                           f"Generate claims again to update it to ${expected_amount:,.2f}.", tone="warn", icon="&#9888;")
         else:
             render_banner(f"{target_type} claim already generated", existing_claim["Claim ID"], tone="ok", icon="&#10003;")
+    if bill.get("rcm_exceptions"):
+        render_banner(
+            f"RCM review · {len(bill['rcm_exceptions'])} exception(s) sent with this bill",
+            " · ".join(f"{item.get('check')}: {item.get('detail')}" for item in bill["rcm_exceptions"])[:600],
+            tone="warn",
+            icon="&#9888;",
+        )
     bill_issues = _bill_issues(bill)
     if bill_issues:
         render_banner("Fix these before generating claims", " · ".join(bill_issues), tone="warn", icon="&#9888;")

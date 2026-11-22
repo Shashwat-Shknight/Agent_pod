@@ -42,12 +42,8 @@ from frontend.ui.shell import render_page
 from frontend.ui.state import (
     ACCESS,
     can,
-    can_open,
     current_user,
-    go_to,
     log_action,
-    open_billing,
-    open_record,
     persist_access,
     save_record,
     set_edit_summary,
@@ -204,6 +200,19 @@ def _render_recommendation_body(record, index, item, is_approved, decisions, dec
         st.button("Push to note ↗", key=f"cds_push_{index}", type="tertiary", on_click=push_to_note, width="content")
 
 
+def _render_coding_handoff(record, is_approved):
+    """Clinicians see where the encounter is in the coding queue, never the codes themselves."""
+    with st.container(border=True):
+        if is_approved:
+            status = badge("Queued for coding", "blue")
+            detail = "The signed note is in the coding queue. A certified coder assigns ICD-10 / CPT / HCC codes."
+        else:
+            status = badge("Awaiting signature", "amber")
+            detail = "After you sign, the note goes to the coding queue. Codes are assigned by the coding team."
+        card_title("Coding hand-off", "Segregation of duties: clinicians document, coders code", trailing=status)
+        st.caption(detail)
+
+
 def _review_step_cds(record, is_approved, chart):
     recommendation_text = record.get("recommendations") or ""
     sections = split_cds_sections(recommendation_text)
@@ -299,27 +308,7 @@ def _review_step_cds(record, is_approved, chart):
             coverage = primary_coverage(chart) if chart else {}
             card_title("Care Gaps · VBC", f"{coverage.get('Plan_Type') or 'Commercial'} measure set")
             render_checklist(care_gaps(chart), "No quality measure applies to the active problem list.")
-        with st.container(border=True):
-            card_title("Coding & Billing", "ICD-10 / CPT suggestions and the guarded draft bill")
-            code_col, bill_col = st.columns(2)
-            code_col.button(
-                "ICD-10 / CPT codes →",
-                key="cds_open_codes",
-                type="secondary",
-                width="stretch",
-                disabled=not can_open("codes"),
-                on_click=open_record,
-                args=(record, "codes"),
-            )
-            bill_col.button(
-                "Bill generation →",
-                key="cds_open_billing",
-                type="secondary",
-                width="stretch",
-                disabled=not can_open("billing"),
-                on_click=open_billing,
-                args=(record,),
-            )
+        _render_coding_handoff(record, is_approved)
         if not is_approved:
             with st.container(border=True):
                 card_title("Add Clinical Insight")
@@ -387,7 +376,7 @@ def _review_step_soap(record, is_approved, can_edit=True, can_sign=True):
         edited_df = render_transcript(record, read_only=not editable)
     with right:
         with st.container(border=True):
-            card_title("Detected Insights", "Grouped clinical signals used for coding")
+            card_title("Detected Insights", "Grouped clinical signals from the conversation")
             insights = st.session_state.detected_insights
             if insights:
                 render_grouped_insights(insights)
@@ -417,35 +406,23 @@ def _review_step_soap(record, is_approved, can_edit=True, can_sign=True):
             st.warning(f"Consultation saved locally but EHR note sync failed: {error}")
         return True
 
-    back_col, codes_col, draft_col, final_col = st.columns([2.2, 3.6, 1.8, 2.4])
+    # The clinical screen never links to codes or billing: the signed note goes to the coding queue.
+    back_col, _, draft_col, final_col = st.columns([2.2, 3.6, 1.8, 2.4])
     if back_col.button("← Back to Clinical Review", key="review_soap_back", width="stretch"):
         st.session_state.review_step = "cds"
         st.rerun()
-    codes_col.button(
-        "View ICD-10 / CPT codes →",
-        key="soap_open_codes",
-        type="tertiary",
-        disabled=not can_open("codes"),
-        on_click=open_record,
-        args=(record, "codes"),
-    )
     if is_approved:
-        draft_col.button(
-            "Billing →",
-            key="soap_open_billing",
-            width="stretch",
-            disabled=not can_open("billing"),
-            on_click=open_billing,
-            args=(record,),
+        render_banner(
+            "Signed and locked · sent to the coding queue",
+            "A certified coder assigns ICD-10 / CPT / HCC codes from this note. No further action is needed here.",
+            icon="&#10003;",
         )
         final_col.button(
-            "Proceed to Coding →",
-            key="review_to_coding",
+            "Next consultation →",
+            key="review_next_consult",
             type="primary",
             width="stretch",
-            disabled=not can_open("codes"),
-            on_click=open_record,
-            args=(record, "codes"),
+            on_click=start_new_consultation,
         )
     else:
         if draft_col.button("Save Draft", key="review_soap_draft", width="stretch", disabled=not can_edit):
@@ -460,8 +437,9 @@ def _review_step_soap(record, is_approved, can_edit=True, can_sign=True):
             help=None if can_sign else "Your role cannot sign clinical notes (Clinical Review · Approve).",
         ):
             if persist(True):
-                st.session_state.code_record_id = None
-                go_to("codes")
+                record["coding_status"] = "Queued for coding"
+                save_record(record)
+                st.toast("Note signed and sent to the coding queue")
                 st.rerun()
 
 

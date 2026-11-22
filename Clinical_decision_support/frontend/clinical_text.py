@@ -103,7 +103,7 @@ def best_excerpt(term, text, max_chars=260):
 
 def get_insight_category(insight):
     lowered = insight.lower()
-    if any(x in lowered for x in ("diabetes", "hypertension", "cholesterol", "asthma", "arthritis")):
+    if any(x in lowered for x in ("diabetes", "hypertension", "cholesterol", "hyperlipidemia", "asthma", "arthritis")):
         return "Diagnoses", "insight-diagnosis"
     if any(x in lowered for x in ("smok", "alcohol", "obesity")):
         return "Risk Factors", "insight-risk"

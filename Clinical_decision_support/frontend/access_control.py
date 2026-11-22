@@ -20,14 +20,27 @@ from typing import Any
 try:
     from frontend.admin_service import (
         ACTIONS,
+        CLINICIAN_ROLES,
+        CODER_ONLY_MODULES,
         DEFAULT_PERMISSIONS,
         MODULES,
         ROLES,
         POC_MODULE,
         VBC_SCREENS,
+        enforce_segregation,
     )
 except ModuleNotFoundError:
-    from admin_service import ACTIONS, DEFAULT_PERMISSIONS, MODULES, POC_MODULE, ROLES, VBC_SCREENS
+    from admin_service import (
+        ACTIONS,
+        CLINICIAN_ROLES,
+        CODER_ONLY_MODULES,
+        DEFAULT_PERMISSIONS,
+        MODULES,
+        POC_MODULE,
+        ROLES,
+        VBC_SCREENS,
+        enforce_segregation,
+    )
 
 PBKDF2_ITERATIONS = 310_000
 MIN_PASSWORD_LENGTH = 8
@@ -135,6 +148,7 @@ def _with_defaults(store: dict[str, Any]) -> dict[str, Any]:
         for module in MODULES:
             if module not in stored:
                 stored[module] = deepcopy(DEFAULT_PERMISSIONS[role][module])
+        enforce_segregation(role, stored)
     permissions[SUPER_ADMIN] = deepcopy(DEFAULT_PERMISSIONS[SUPER_ADMIN])
     return store
 
@@ -340,6 +354,8 @@ def can(store: dict[str, Any], user: dict[str, Any] | None, module: str, action:
         return False
     if user.get("role") == SUPER_ADMIN:
         return True
+    if user.get("role") in CLINICIAN_ROLES and module in CODER_ONLY_MODULES:
+        return False  # segregation of duties: clinicians document and sign, coders code
     return bool(role_permissions(store, user.get("role", "")).get(module, {}).get(action, False))
 
 
@@ -367,7 +383,7 @@ def save_role_permissions(store: dict[str, Any], role: str, rows: list[dict[str,
         for module, values in updated.items() for action in ACTIONS
         if bool(before.get(module, {}).get(action)) != values[action]
     ]
-    store["role_permissions"][role] = {**deepcopy(before), **updated}
+    store["role_permissions"][role] = enforce_segregation(role, {**deepcopy(before), **updated})
     if changes:
         audit(store, actor, "role.permissions", f"{role}: " + ", ".join(changes))
 

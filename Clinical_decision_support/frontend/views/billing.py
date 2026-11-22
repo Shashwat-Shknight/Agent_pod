@@ -41,6 +41,24 @@ from frontend.views.coding import (
 )
 
 
+_EM_VISIT_CODES = {f"992{n:02d}" for n in range(2, 16)}  # 99202-99215 office/outpatient visits
+
+
+def _is_em_visit(code, term):
+    """The documented encounter itself is the evidence that the E/M visit happened."""
+    return code in _EM_VISIT_CODES or "office visit" in str(term).lower()
+
+
+def rcm_exceptions(post_checks, unpriced):
+    """Open issues that travel with the claim to the RCM work queue instead of blocking the hand-off."""
+    exceptions = [
+        {"check": check["name"], "detail": check["detail"]} for check in post_checks or [] if check.get("status") == "fail"
+    ]
+    exceptions += [{"check": "Unpriced service", "detail": f"CPT {code} has no chargemaster rate; not on the claim"}
+                   for code in unpriced or []]
+    return exceptions
+
+
 def billing_guardrail_rows(record):
     """Classify each CPT candidate as billable/blocked using performed-status evidence."""
     cpt_results = list(encounter_code_results(record).get("cpt") or [])
@@ -65,10 +83,14 @@ def billing_guardrail_rows(record):
         from_superbill = candidate.get("source") == "ocr_superbill"
         words = [word for word in re.findall(r"[a-z]+", term.lower()) if len(word) > 3]
         in_note = any(word in note_text for word in words)
+        is_visit = _is_em_visit(code, term) and bool(documentation.strip())
         if rejected:
             guardrail, tone, reason = "EXCLUDED", "gray", "Rejected by coder"
         elif performed:
             guardrail, tone, reason = "BILLABLE", "green", "Performed and documented"
+        elif is_visit:
+            guardrail, tone, reason = "BILLABLE", "green", "Encounter documented (E/M visit)"
+            procedure_status = "performed"
         elif from_superbill and decision == "Accepted":
             guardrail, tone, reason = "BILLABLE", "green", "Provider superbill (OCR), accepted by coder"
             procedure_status = "superbill"
@@ -330,8 +352,13 @@ def show_billing():
         if prices.get(row["code"], {}).get("Pricing Status") == "Priced"
     )
     code_rows = build_code_rows(record, encounter_code_results(record)) if guardrail else []
-    post_summary = summarize_checks(coding_validation(record, code_rows)[1]) if code_rows else None
+    post_checks = coding_validation(record, code_rows)[1] if code_rows else []
+    post_summary = summarize_checks(post_checks) if code_rows else None
     coding_blocked = bool(post_summary and post_summary["status"] == "fail")
+    # Only priced lines go on the claim; validation failures and unpriced codes travel with it as exceptions
+    # for the RCM work queue, so a coder-attested bill always reaches RCM.
+    priced_rows = [row for row in bill_rows if row.get("Pricing Status") == "Priced"]
+    exceptions = rcm_exceptions(post_checks, unpriced)
 
     actions = page_header(
         "BILLING & RCM",
@@ -371,42 +398,51 @@ def show_billing():
     )
 
     def send_to_rcm():
-        selected_codes = [row["code"] for row in billable]
+        selected_codes = [row["CPT/HCPCS Code"] for row in priced_rows]
         estimate = {
             "record_id": record.get("id"),
             "encounter_type": encounter_type,
             "code_results_signature": None,
             "selected_cpt_codes": selected_codes,
-            "rows": bill_rows,
+            "rows": priced_rows,
             "total": bill_total,
             "unpriced_codes": unpriced,
+            "rcm_exceptions": exceptions,
         }
         st.session_state.estimated_hospital_bill = estimate
         # Saved with the encounter so Claim Generation finds it in any later session.
         record["bill_estimate"] = estimate
-        register_generated_bill(build_ambient_bill(record, estimate, encounter_code_results(record)), source=encounter_type)
+        bill = build_ambient_bill(record, estimate, encounter_code_results(record))
+        bill["rcm_exceptions"] = exceptions
+        register_generated_bill(bill, source=encounter_type)
         record["bill_generated_at"] = datetime.now().strftime("%d %b %Y %H:%M")
         record["bill_released_by"] = current_user()["username"]
+        record["rcm_exceptions"] = exceptions
+        record["rcm_status"] = f"RCM review · {len(exceptions)} exception(s)" if exceptions else "Sent to RCM"
         save_record(record)
         # The released bill is archived as a PDF in the database (BILLING.BILL_DOCUMENTS).
         archive_pdf("DRAFT_BILL", bill_pdf_name, bill_pdf_bytes(export, record), **bill_archive_details)
-        log_action("claim.send", f"{record.get('id')}: {', '.join(selected_codes)} · ${bill_total:,.2f}")
+        detail = f"{record.get('id')}: {', '.join(selected_codes)} · ${bill_total:,.2f}"
+        if exceptions:
+            detail += " · exceptions: " + "; ".join(item["check"] for item in exceptions)
+        log_action("claim.send_with_exceptions" if exceptions else "claim.send", detail)
         go_to("claim_generation")
 
+    can_release = can("RCM Workspace", "Approve")
+    attested = st.session_state.get(attest_key, False)
     actions.button(
         "Send to RCM (claim draft) ➤",
         key="accent_billing_send",
         on_click=send_to_rcm,
-        disabled=not bill_rows
-        or not st.session_state.get(attest_key, False)
-        or coding_blocked
-        or not can("RCM Workspace", "Approve"),
+        disabled=not priced_rows or not attested or not can_release,
         help=(
-            "Resolve blocking post-coding validation issues first."
-            if coding_blocked
-            else None
-            if can("RCM Workspace", "Approve")
-            else "Your role cannot release claims (RCM Workspace · Approve)."
+            "Your role cannot release claims (RCM Workspace · Approve)."
+            if not can_release
+            else "No priced, billable line yet: confirm performed services with the coder override below."
+            if not priced_rows
+            else "Tick the coder attestation below."
+            if not attested
+            else f"Sends the claim with {len(exceptions)} exception(s) for RCM review." if exceptions else None
         ),
     )
 
@@ -435,7 +471,8 @@ def show_billing():
             label, tone = VALIDATION_TONES[post_summary["status"]]
             banner_tone = {"pass": "ok", "warn": "warn", "fail": "danger"}[post_summary["status"]]
             detail = (
-                "Send to RCM is disabled until the blocking issues are resolved in Coding & HCC."
+                f"You can still send to RCM: the {post_summary['fails']} open issue(s) go with the claim as exceptions "
+                "for the RCM work queue, or resolve them in Coding & HCC first."
                 if coding_blocked
                 else f"Validation score {post_summary['score']}/100 · review details in Coding & HCC."
             )
@@ -507,11 +544,18 @@ def show_billing():
                     help="Use only when the service was performed but the note does not say so. "
                     "Your username and time are saved with the encounter and in the audit log.",
                 )
-            st.checkbox(
-                "I reviewed these CPT/HCPCS codes and confirm the services were performed and documented for this encounter.",
-                key=attest_key,
-                disabled=not can("RCM Workspace", "Edit"),
+            attestation = (
+                "I reviewed these CPT/HCPCS codes and confirm the services were performed and documented for this encounter."
             )
+            if exceptions:
+                attestation += f" I acknowledge {len(exceptions)} open exception(s) that go to the RCM work queue for review."
+                render_banner(
+                    f"{len(exceptions)} exception(s) will travel with the claim",
+                    " · ".join(f"{item['check']}: {item['detail']}" for item in exceptions)[:600],
+                    tone="warn",
+                    icon="&#9888;",
+                )
+            st.checkbox(attestation, key=attest_key, disabled=not can("RCM Workspace", "Edit"))
         with st.container(border=True):
             coverage = primary_coverage(chart) if chart else {}
             bill_id = f"BILL-{re.sub(r'[^A-Za-z0-9]', '', str(record.get('ehr_encounter_id') or record.get('id')))[-6:]}"

@@ -135,6 +135,8 @@ def medication_safety_checks(chart, plan_text=""):
     medications = [row for row in chart_rows(chart, "Medications") if is_active_row(row)]
     medication_text = " ".join(str(row.get("Medication", "")) for row in medications).lower()
     plan_lower = str(plan_text or "").lower()
+    # Sentences that record the allergy or warn against the drug are not orders of it.
+    plan_lower = re.sub(r"[^.\n]*\b(?:allerg\w*|avoid\w*|contraindicat\w*|intoleran\w*)[^.\n]*", " ", plan_lower)
     checks = []
     for allergy in active_drug_allergies(chart):
         substance = str(allergy.get("Substance") or "Drug").strip()

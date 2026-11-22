@@ -20,6 +20,7 @@ DOCUMENTED_CPT_TERMS = {
     "83036": ("a1c", "hba1c", "hemoglobin a1c"),
     "80061": ("lipid panel", "cholesterol panel", "cholesterol testing"),
     "80053": ("comprehensive metabolic panel", "cmp"),
+    "80048": ("basic metabolic panel", "bmp", "kidney function"),
 }
 CHRONIC_CONDITION_PATTERNS = {
     "diabetes": r"\bdiabetes\b|\bdiabetic\b",

@@ -110,8 +110,42 @@ def get_detected_insights(transcript_text):
         "physiotherapy": "Physical Therapy",
         "injection": "Injection",
         "injections": "Injection",
+        "hyperlipidemia": "Hyperlipidemia",
+        "lipid panel": "Lipid Panel",
+        "basic metabolic panel": "Basic Metabolic Panel",
     }
-    return list(dict.fromkeys(value for keyword, value in keyword_map.items() if keyword in text))
+    insights = list(dict.fromkeys(value for keyword, value in keyword_map.items() if keyword in text))
+    return _specific_diabetes(insights, text)
+
+
+DIABETES_WITH_NEUROPATHY = "Type 2 diabetes mellitus with diabetic polyneuropathy"
+DIABETES_WITH_HYPERGLYCEMIA = "Type 2 diabetes mellitus with hyperglycemia"
+_HYPERGLYCEMIA = re.compile(
+    r"\buncontrolled\b|\bpoorly controlled\b|\bhyperglyc|\bhigh (?:blood )?sugars?\b|\bsugars? (?:are|is|have been|has been|running) (?:\w+ )?high\b"
+)
+
+
+def _specific_diabetes(insights, text):
+    """Replace the generic diabetes insight with the documented complication (E11.42 / E11.65 rather than E11.9)."""
+    if "Diabetes (Type 2)" not in insights:
+        return insights
+    specific = []
+    if re.search(r"\bneuropath", text):
+        specific.append(DIABETES_WITH_NEUROPATHY)
+    if _HYPERGLYCEMIA.search(text):
+        specific.append(DIABETES_WITH_HYPERGLYCEMIA)
+    if not specific:
+        return insights
+    position = insights.index("Diabetes (Type 2)")
+    return insights[:position] + specific + insights[position + 1 :]
+
+
+# Insight labels shown to clinicians -> wording that matches the official ICD-10-CM description.
+CODING_TERMS = {"Hyperlipidemia": "Hyperlipidemia, unspecified"}
+
+
+def coding_term(item):
+    return CODING_TERMS.get(item, item)
 
 
 def get_record_insights(record):
@@ -128,6 +162,8 @@ def is_documented_cpt_candidate(item, documentation):
     """Return True for CPT suggestions that are documented in the note, even if not yet performed."""
     if not documentation or not str(documentation).strip():
         return False
+    if "office visit" in str(item).lower():
+        return True  # the documented encounter itself is the evidence for the E/M visit
     if not is_explicitly_performed:
         return False
     status = classify_procedure_status(*_procedure_status_inputs(item, documentation)) if classify_procedure_status else "unknown"
@@ -152,7 +188,7 @@ def get_code_suggestions(insights, documentation=None):
         )
         return {"icd10": [], "cpt": []}
 
-    candidates = list(dict.fromkeys(str(item).strip() for item in insights if item and item != "None"))
+    candidates = list(dict.fromkeys(coding_term(str(item).strip()) for item in insights if item and item != "None"))
     if not candidates:
         st.session_state.code_generation_error = "No codable clinical insights were detected."
         return {"icd10": [], "cpt": []}
@@ -286,7 +322,7 @@ def get_backend_code_suggestions(insights, documentation=""):
             "endoscopy",
             "evaluation",
         )
-        for item in insights:
+        for item in map(coding_term, insights):
             item_type = str(classify_medical_item(item) or "").lower()
             if item_type in {"cpt", "hcpcs", "procedure"} or any(term in item.lower() for term in procedure_terms):
                 procedures.append(item)
