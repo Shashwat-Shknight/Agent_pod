@@ -1,0 +1,2442 @@
+{
+ "record_id": "PT-30882253",
+ "responses": {
+  "/api/auth/session": {
+   "state": "ready",
+   "user": {
+    "username": "admin",
+    "name": "Admin User",
+    "email": "",
+    "role": "Super Admin",
+    "must_change_password": false,
+    "permissions": {
+     "Clinical Overview": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Clinical Review": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Codes": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "RCM Workspace": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "IPD Billing": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Admin Dashboard": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Super Admin": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "EHR Demo Data": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     }
+    },
+    "pages": [
+     "dashboard",
+     "consultations",
+     "review",
+     "knowledge",
+     "coding",
+     "billing",
+     "oversight",
+     "users"
+    ]
+   }
+  },
+  "/api/dashboard": {
+   "kpis": {
+    "total": 1,
+    "today": 1,
+    "pending": 0,
+    "signed": 1,
+    "coded": 1,
+    "sign_off_rate": 100
+   },
+   "activity": [
+    {
+     "date": "2026-11-23",
+     "consults": 1,
+     "signed": 1
+    }
+   ],
+   "queue": [
+    {
+     "id": "PT-30882253",
+     "version": 9,
+     "name": "William Young",
+     "mrn": "MRN500031",
+     "patient_id": "P100031",
+     "encounter_id": "ENC-E72464F65C",
+     "doctor": "Dr.Carter",
+     "date": "23/11/2026",
+     "time": "17:24",
+     "status": "Approved",
+     "approval_date": "23/11/2026",
+     "assigned_to": "dr.carter",
+     "coding_status": "Queued for coding",
+     "bill_generated_at": "23 Nov 2026 17:24",
+     "stage": "Billed"
+    }
+   ],
+   "ehr": {
+    "connected": true,
+    "patients": 52
+   }
+  },
+  "/api/consultations": {
+   "consultations": [
+    {
+     "id": "PT-30882253",
+     "version": 9,
+     "name": "William Young",
+     "mrn": "MRN500031",
+     "patient_id": "P100031",
+     "encounter_id": "ENC-E72464F65C",
+     "doctor": "Dr.Carter",
+     "date": "23/11/2026",
+     "time": "17:24",
+     "status": "Approved",
+     "approval_date": "23/11/2026",
+     "assigned_to": "dr.carter",
+     "coding_status": "Queued for coding",
+     "bill_generated_at": "23 Nov 2026 17:24",
+     "stage": "Billed"
+    }
+   ]
+  },
+  "/api/consultations/PT-30882253": {
+   "record": {
+    "id": "PT-30882253",
+    "name": "William Young",
+    "age": "",
+    "gender": "Female",
+    "doctor": "Dr.Carter",
+    "date": "23/11/2026",
+    "time": "17:24",
+    "status": "Approved",
+    "transcript": "Doctor: Good morning, William. What brings you in today?\nPatient: Good morning, doctor. My sugars have been running high at home, mostly between 220 and 260 in the mornings.\nDoctor: How long has that been going on?\nPatient: About two months. I ran out of my metformin around then and never got it refilled.\nDoctor: Any other symptoms?\nPatient: I am thirsty all the time and I get up two or three times at night to pass urine. And for the last few months I have numbness, tingling and burning in both feet, worse at night.\nDoctor: Any cuts or sores on your feet?\nPatient: No, nothing like that.\nDoctor: What medicines are you taking right now?\nPatient: Only lisinopril 10 milligrams every morning for my blood pressure. I have not missed it.\nDoctor: Any allergies?\nPatient: Yes, penicillin. It gives me hives.\nDoctor: Anything else I should know?\nPatient: My cholesterol was high at my last check-up, but I was never started on anything for it.\nDoctor: Let me examine you. Your blood pressure today is 152 over 88 and your pulse is 78. On your foot exam, sensation to the monofilament is decreased in both feet, the skin is intact with no ulcers, and the foot pulses are normal. Before you came in, we collected blood for an A1c, lipid panel and basic metabolic panel to check your kidney function.\nPatient: Is that serious?\nDoctor: It is something we need to take care of. My assessment today: first, type 2 diabetes, uncontrolled with high sugars, because you have been off metformin. Second, diabetic peripheral neuropathy in both feet. Third, hypertension that is not at goal on lisinopril. Fourth, hyperlipidemia that is not on any treatment.\nPatient: So what do we do now?\nDoctor: Let me review the clinical decision support for each of these problems before I finalise your treatment plan. I will go through it with you in a moment.\nPatient: Okay. Thank you, doctor.",
+    "transcript_data": [
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "Good morning, William. What brings you in today?"
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "Good morning, doctor. My sugars have been running high at home, mostly between 220 and 260 in the mornings."
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "How long has that been going on?"
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "About two months. I ran out of my metformin around then and never got it refilled."
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "Any other symptoms?"
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "I am thirsty all the time and I get up two or three times at night to pass urine. And for the last few months I have numbness, tingling and burning in both feet, worse at night."
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "Any cuts or sores on your feet?"
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "No, nothing like that."
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "What medicines are you taking right now?"
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "Only lisinopril 10 milligrams every morning for my blood pressure. I have not missed it."
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "Any allergies?"
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "Yes, penicillin. It gives me hives."
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "Anything else I should know?"
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "My cholesterol was high at my last check-up, but I was never started on anything for it."
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "Let me examine you. Your blood pressure today is 152 over 88 and your pulse is 78. On your foot exam, sensation to the monofilament is decreased in both feet, the skin is intact with no ulcers, and the foot pulses are normal. Before you came in, we collected blood for an A1c, lipid panel and basic metabolic panel to check your kidney function."
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "Is that serious?"
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "It is something we need to take care of. My assessment today: first, type 2 diabetes, uncontrolled with high sugars, because you have been off metformin. Second, diabetic peripheral neuropathy in both feet. Third, hypertension that is not at goal on lisinopril. Fourth, hyperlipidemia that is not on any treatment."
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "So what do we do now?"
+     },
+     {
+      "Speaker": "Dr.Carter",
+      "Text": "Let me review the clinical decision support for each of these problems before I finalise your treatment plan. I will go through it with you in a moment."
+     },
+     {
+      "Speaker": "William Young",
+      "Text": "Okay. Thank you, doctor."
+     }
+    ],
+    "summary": "Subjective:\nHigh blood sugar readings in the mornings.\n\nPatient reports fasting blood sugars ranging from 220 to 260 mg/dL for the past two months after running out of metformin and not refilling it. He experiences constant thirst, wakes 2-3 times nightly to urinate, and has had numbness, tingling, and burning in both feet for the last few months, worse at night. No foot ulcers or cuts are present.\n\nType 2 diabetes mellitus, hypertension, hyperlipidemia, penicillin allergy (hives).\n\nLisinopril 10 mg daily.\n\nObjective:\nBlood pressure 152/88 mmHg, pulse 78 bpm. Foot exam: decreased sensation to monofilament bilaterally, intact skin, no ulcers, normal pulses. Blood drawn for A1c, lipid panel, and basic metabolic panel.\n\nAssessment:\n1) Type 2 diabetes, uncontrolled due to lack of metformin. 2) Diabetic peripheral neuropathy in both feet. 3) Hypertension not at goal on current lisinopril therapy. 4) Hyperlipidemia not currently treated.\n\nPlan:\nReview clinical decision support for diabetes, hypertension, hyperlipidemia, and neuropathy and finalize a treatment plan, including appropriate medication adjustments.\n\u2022 Restart Metformin (low\u2011dose, titrate upward)\n\u2022 Tighten Glycemic Control to Mitigate Neuropathy\n\u2022 Add a Second Antihypertensive Agent (e.g., thiazide diuretic)\n\u2022 Start Moderate\u2011Intensity Statin Therapy",
+    "patient_summary": "William is a patient with type 2 diabetes, hypertension, and hyperlipidemia who has been off metformin for two months, presenting with high morning glucose readings, polydipsia, nocturia, and peripheral neuropathy symptoms. He is on lisinopril and has a penicillin allergy.",
+    "key_highlights": [
+     "Fasting glucose 220-260 mg/dL for ~2 months",
+     "Stopped metformin, not refilled",
+     "Polydipsia and nocturia (2-3 times/night)",
+     "Bilateral foot numbness, tingling, burning (worse at night)",
+     "No foot ulcers or skin breakdown",
+     "Allergy to penicillin (hives)",
+     "Blood pressure 152/88 on lisinopril 10 mg daily",
+     "Decreased monofilament sensation in both feet",
+     "Labs ordered: A1c, lipid panel, BMP",
+     "Assessment: uncontrolled type 2 diabetes, diabetic peripheral neuropathy, uncontrolled hypertension, untreated hyperlipidemia"
+    ],
+    "retrieved_guidelines": "Source: Harrison's Principles of Internal Medicine, passage 997 \u00b7 Topic: Type 2 diabetes, uncontrolled due to lack of metformin\n. T1DM, type 1 diabetes mellitus; T2DM, type 2 diabetes mellitus. (Reprinted with permission from The American Diabetes Association. Copyright 2012 by the American Diabetes Association.) HbA1c or lower glycemic goals even at elevated HbA1c levels (8\u201310%), as they represent an increased prob ability of recent antecedent hypoglycemia. Hypoglycemia Risk Factor Reduction Several multicenter, randomized controlled trials investigat ing the potential benefits of tight glucose control in either inpatient or outpatient settings have reported a high prevalence of severe hypoglycemia. In the NICE SUGAR study, attempts to control in-hospital plasma glucose values toward physiologic levels resulted in increased mortality risk. The ADVANCE and ACCORD studies and the Veterans Affairs Diabetes Trial (VADT) also found a significant incidence of severe hypoglycemia among T2DM patients. Severe hypoglycemia with accompanying serious cardio vascular morbidity and mortality also occurred in the standard (e.g., not receiving intensified treat ment) control group in all of the above studies and in another large study in prediabetic and T2DM individuals (ORIGIN)\n\nSource: Harrison's Principles of Internal Medicine, passage 671 \u00b7 Topic: Type 2 diabetes, uncontrolled due to lack of metformin\n. Neuromuscular junction disorders with autonomic involvement include botulism and Lambert-Eaton myasthenic syndrome (Chaps. 457\u2013459). Diabetes Mellitus Diabetes mellitus remains one of the leading causes of peripheral autonomic neuropathy. The presence of autonomic neuropathy increases the mortality rate of diabetes up to threefold, even after adjusting for other cardiovascular risk factors. The neuropathy risk correlates with the product of the patient\u2019s hemoglobin A1c values and the duration of the diabetes. Early autonomic impairment is most often 3550 manifest as cardiovascular parasympathetic hypofunction. As diabetes progresses, sympathetic hypofunction follows, dominated by OH. The autonomic involvement also predicts other complications including cor onary artery disease, renal disease, stroke, and sleep apnea. It also plays a significant role in the gastrointestinal dysmotility, which may further complicate glycemic control. Improved glycemic control significantly reduces the long-term risk of autonomic cardiovascular neuropathy. Diabetes mellitus is discussed in Chaps. 415\u2013417\n\nSource: Harrison's Principles of Internal Medicine, passage 965 \u00b7 Topic: Diabetic peripheral neuropathy in both feet\n. \u25a0NEUROPATHY AND DIABETES MELLITUS Diabetic neuropathy, which occurs in ~50% of individuals with long standing type 1 and type 2 DM, manifests as a diffuse neuropathy (distal symmetrical polyneuropathy and/or autonomic neuropathy), a mononeuropathy, and/or a radiculopathy/polyradiculopathy. As with other complications of DM, the development of neuropathy correlates with the duration of diabetes and glycemic control. Additional risk factors are body mass index (BMI) (the greater the BMI, the greater the risk of neuropathy) and smoking. The presence of ASCVD, ele vated triglycerides, and hypertension is also associated with diabetic peripheral neuropathy. Both myelinated and unmyelinated nerve fibers are lost. Because the clinical features of diabetic neuropathy are similar to those of other neuropathies, the diagnosis of diabetic neuropathy should be made only after other possible etiologies are excluded (Chap. 457). Distal Symmetric Polyneuropathy (DSPN) DSPN, the most common form of diabetic neuropathy, most frequently presents with distal sensory loss and pain, but up to 50% of patients do not have symptoms of neuropathy\n\nSource: Harrison's Principles of Internal Medicine, passage 1009 \u00b7 Topic: Diabetic peripheral neuropathy in both feet\n(cisplatin, carboplatin, oxaliplatin) Peripheral neuropathy, hearing loss, renal tubular dysfunction, interstitial pneumonitis, second malignancies Vinca alkaloids (vincristine, vinblastine) Peripheral neuropathy Taxanes (paclitaxel, docetaxel) Peripheral neuropathy, interstitial pneumonitis, cognitive impairment Aromatase inhibitors (anastrozole, letrozole, fulvestrant) Vasomotor symptoms, fractures Antiandrogens (apalutamide, bicalutamide, darolutamide, enzalutamide, flutamide, nilutamide) Sexual dysfunction Immunotherapy Agents Immune checkpoint inhibitors (nivolumab, pembrolizumab, cemiplimab, avelumab, durvalumab, atezolizumab, dostarlimab, ipilimumab) Autoimmune conditions, myocarditis, pericarditis, peripheral neuropathy Bispecific T-cell engagers (mosunetuzumab, glofitamab, epcoritamab) Recurrent infections CAR-T therapy Acute leukemia, myelodysplasia, T-cell lymphoma, peripheral neuropathy, recurrent infections Targeted Agents Antibody-drug conjugates (brentuximab, polatuzumab, gemtuzumab) Interstitial pneumonitis, peripheral neuropathy, sinusoidal obstruction syndrome Immunomodulatory agents (thalidomide, lenalidomide, pomalidomide) Second malignancies, prolonged\n\nSource: Harrison's Principles of Internal Medicine, passage 710 \u00b7 Topic: Hypertension not at goal on current lisinopril therapy\n. Both normotensive and hypertensive women have higher blood pressure levels during the fol licular phase than during the luteal phase. In the Nurses\u2019 Health Study, the relative risk of hypertension was 1.8 in current users of oral contra ceptives, but this risk is lower with the newer low-dose contraceptive preparations. Long-term data from this cohort also demonstrate that having gestational hypertension or preeclampsia during a first preg nancy doubled the rate of developing chronic hypertension. HT is not associated with hypertension. Among secondary causes of hyperten sion, there is a female preponderance of renal artery fibromuscular dysplasia. The benefits of treatment for hypertension have been dramatic in both women and men. A meta-analysis of the effects of hypertension treatment, the Individual Data Analysis of Antihypertensive Interven tion Trial, found a reduction of risk for stroke and major cardiovascular events in women. The effectiveness of various antihypertensive drugs appears to be comparable in women and men; however, women may experience more side effects, such as cough with angiotensin-converting enzyme inhibitors. \u25a0AUTOIMMUNE DISORDERS (See also Chap\n\nSource: Harrison's Principles of Internal Medicine, passage 960 \u00b7 Topic: Hypertension not at goal on current lisinopril therapy\n. Risk factors for radiocontrast-induced nephrotoxicity are preexisting nephropathy and volume depletion. Individuals with DM undergoing radiographic procedures with iodinated contrast dye should be well hydrated before and after dye exposure, and the serum creatinine should be monitored for 24\u201348 h following the procedure. 0 3 5 1 10 5 20 Albuminuria 25 GFR, mL/min 120 150 150 120 60 < 20 mL/min/1.73 m2. Many individuals with type 1 or type 2 DM develop hyperten sion. Hypertension accelerates complications of DM, particularly ASCVD, nephropathy, and retinopathy. Blood pressure should be measured at every clinic visit; individuals should also be encour aged to monitor their blood pressure at home. The blood pressure goal should be 150/90 mmHg, initial treatment should consist of two antihyper tensive medications. Multiple agents are often required to control blood pressure. In pregnant individuals with diabetes and chronic hypertension, blood pressure control is associated with better preg nancy outcomes\n\nSource: Harrison's Principles of Internal Medicine, passage 967 \u00b7 Topic: Hyperlipidemia not currently treated\n. Aspirin is not recom mended for primary prevention in those with a low cardiovascular risk (1.7 mmol/L [150 mg/dL]) or low HDL cholesterol (5.7 mmol/L (500 mg/dL) on a statin, icosapent or fenofibrate can be considered to reduce ASCVD risk. The addition of fenofibrate may require reduction in statin dose to minimize the risk of myopathy. In terms of pharmacologic therapy directed at LDL, the ADA rec ommends the following in addition to lifestyle: (1) all patients with diabetes and ASCVD should receive high-intensity statin therapy (atorvastatin 40\u201380 mg or rosuvastatin 20\u201340 mg) with a goal of >50% reduction in LDL and a cholesterol goal of 75 years on a statin, continue statin or, if not on a statin, consider starting moderate-intensity statin therapy after discussion with the patient; and (6) in patients aged 20\u201339 years with additional risk factors, consider moderate-intensity statin therapy. If a patient with ASCVD cannot tolerate a statin, consider PCSK9 inhibitor therapy (monoclonal antibody or inclisiran, a small interfering RNA), or bempedoic acid. Statin therapy, when combined with fibrate or nia cin, for reduction of LDL does not provide additional benefit\n\nSource: Harrison's Principles of Internal Medicine, passage 1063 \u00b7 Topic: Hyperlipidemia not currently treated\n. The magnitude of LDL-C lowering associated with statin treatment (~30\u201355%) varies by statin and among individuals, but once a patient is on a statin, the doubling of the statin dose produces a ~6% further reduction in the level of plasma LDL-C. An extensive body of randomized clinical trials has clearly established that statin therapy significantly reduces major cardiovascular events (and in some cases total mortality) in both primary and secondary prevention settings. The seven statins currently available differ in their LDL-C\u2013reducing potency (Table 419-4). Current recommendations are to use high-intensity statin therapy in patients with ASCVD or deemed at high risk of ASCVD. Statins also modestly reduce plasma TGs in a dose-dependent fash ion roughly proportional to their LDL-C\u2013lowering effects. Statins, taken in tablet form once a day, are remarkably safe and well tolerated. The most important side effect associated with statin therapy is muscle pain, or myalgia, which occurs in 3\u20135% of patients, some of whom are unable to tolerate any statin",
+    "recommendations": "**Recommendation**  \n1. **Restart Metformin (low\u2011dose, titrate upward)**: Reinstate metformin to address the two\u2011month lapse, beginning at 500\u202fmg daily and increasing as tolerated to achieve better fasting glucose control and lower HbA1c, which is essential for reducing hyperglycemia\u2011related complications (Harrison's, passage\u202f997).  \n\n2. **Tighten Glycemic Control to Mitigate Neuropathy**: By improving glucose control (via metformin and lifestyle measures), the risk and progression of distal symmetric polyneuropathy are reduced, as neuropathy correlates with HbA1c and diabetes duration (Harrison's, passage\u202f965). Encourage weight management, smoking cessation, and blood pressure optimization as adjuncts.  \n\n3. **Add a Second Antihypertensive Agent (e.g., thiazide diuretic)**: Since lisinopril alone has not reached the BP goal of <150/90\u202fmmHg, add a low\u2011dose thiazide (e.g., chlorthalidone 12.5\u202fmg daily) and encourage home BP monitoring to achieve target and lower cardiovascular risk (Harrison's, passage\u202f960).  \n\n4. **Start Moderate\u2011Intensity Statin Therapy**: Initiate a moderate\u2011intensity statin (e.g., atorvastatin 10\u201320\u202fmg daily) to lower LDL\u2011C and reduce ASCVD risk in a diabetic patient without known ASCVD, as recommended for primary prevention (Harrison's, passages\u202f967\u202f&\u202f1063).  \n\n---\n\n**Reasoning**  \n- The patient\u2019s uncontrolled diabetes stems from a recent two\u2011month interruption of metformin; restarting it directly addresses the primary therapeutic gap and aligns with guideline emphasis on avoiding severe hypoglycemia while improving glycemic control (passage\u202f997).  \n- Diabetic peripheral neuropathy is strongly linked to chronic hyperglycemia; better glucose control (via metformin) has been shown to lower long\u2011term neuropathy risk (passage\u202f965). Addressing modifiable contributors (BMI, smoking, hypertension, triglycerides) further supports neuropathy management.  \n- Blood pressure remains above the target despite lisinopril; the guideline advises using two agents to reach <150/90\u202fmmHg, with most drug classes having comparable efficacy (passage\u202f960). Adding a thiazide is a standard, evidence\u2011based step.  \n- Hyperlipidemia is untreated; ADA/Harrison recommendations advise at least moderate\u2011intensity statin therapy for adults with diabetes without ASCVD to achieve LDL\u2011C reduction and cardiovascular event prevention (passages\u202f967\u202f&\u202f1063).  \n\n---\n\n**Safety Note**  \n- **Allergies**: Patient is allergic to penicillin \u2013 no recommendations involve \u03b2\u2011lactam antibiotics.  \n- **Metformin**: Monitor for gastrointestinal upset and rare lactic acidosis, especially if renal function declines.  \n- **Lisinopril**: Watch for cough or angioedema; counsel patient to report any swelling or breathing difficulty.  \n- **Thiazide Diuretic**: Monitor electrolytes (especially potassium) and renal function; advise adequate hydration.  \n- **Statin**: Counsel about muscle pain (myalgia) and check baseline liver enzymes; re\u2011check if symptoms develop.  \n\n*These suggestions are decision\u2011support tools and should be finalized by the treating clinician.*",
+    "ehr_patient_id": "P100031",
+    "patient_id": "P100031",
+    "ehr_encounter_type": "Office Visit",
+    "dob": "1952-07-07T00:00:00",
+    "cds_requested": true,
+    "analysis_version": "2",
+    "created_by": "dr.carter",
+    "mrn": "MRN500031",
+    "ehr_encounter_id": "ENC-E72464F65C",
+    "ehr_note_id": "NOTE-5D52B9D378",
+    "assigned_to": "dr.carter",
+    "assignment_history": [
+     {
+      "at": "2026-11-23 17:24:39",
+      "from": null,
+      "to": "dr.carter",
+      "by": "dr.carter",
+      "reason": "Consultation created"
+     }
+    ],
+    "version": 9,
+    "review_history": [
+     {
+      "at": "23 Nov 2026 17:24",
+      "action": "Pushed to plan: Restart Metformin (low\u2011dose, titrate upward)"
+     },
+     {
+      "at": "23 Nov 2026 17:24",
+      "action": "Pushed to plan: Tighten Glycemic Control to Mitigate Neuropathy"
+     },
+     {
+      "at": "23 Nov 2026 17:24",
+      "action": "Pushed to plan: Add a Second Antihypertensive Agent (e.g., thiazide diuretic)"
+     },
+     {
+      "at": "23 Nov 2026 17:24",
+      "action": "Pushed to plan: Start Moderate\u2011Intensity Statin Therapy"
+     },
+     {
+      "at": "23 Nov 2026 17:24",
+      "action": "Note signed and locked by Dr.Carter"
+     }
+    ],
+    "approval_date": "23/11/2026",
+    "signed_by": "dr.carter",
+    "coding_status": "Queued for coding",
+    "code_signature": "42d6c1551cee025e",
+    "bill_generated_at": "23 Nov 2026 17:24",
+    "bill_released_by": "rcm.patel",
+    "rcm_status": "Sent"
+   },
+   "summary": {
+    "id": "PT-30882253",
+    "version": 9,
+    "name": "William Young",
+    "mrn": "MRN500031",
+    "patient_id": "P100031",
+    "encounter_id": "ENC-E72464F65C",
+    "doctor": "Dr.Carter",
+    "date": "23/11/2026",
+    "time": "17:24",
+    "status": "Approved",
+    "approval_date": "23/11/2026",
+    "assigned_to": "dr.carter",
+    "coding_status": "Queued for coding",
+    "bill_generated_at": "23 Nov 2026 17:24",
+    "stage": "Billed"
+   },
+   "cds": {
+    "items": [
+     {
+      "title": "Restart Metformin (low\u2011dose, titrate upward)",
+      "body": "Reinstate metformin to address the two\u2011month lapse, beginning at 500\u202fmg daily and increasing as tolerated to achieve better fasting glucose control and lower HbA1c, which is essential for reducing hyperglycemia\u2011related complications (Harrison's, passage\u202f997).",
+      "priority": "MED"
+     },
+     {
+      "title": "Tighten Glycemic Control to Mitigate Neuropathy",
+      "body": "By improving glucose control (via metformin and lifestyle measures), the risk and progression of distal symmetric polyneuropathy are reduced, as neuropathy correlates with HbA1c and diabetes duration (Harrison's, passage\u202f965). Encourage weight management, smoking cessation, and blood pressure optimization as adjuncts.",
+      "priority": "ROUTINE"
+     },
+     {
+      "title": "Add a Second Antihypertensive Agent (e.g., thiazide diuretic)",
+      "body": "Since lisinopril alone has not reached the BP goal of <150/90\u202fmmHg, add a low\u2011dose thiazide (e.g., chlorthalidone 12.5\u202fmg daily) and encourage home BP monitoring to achieve target and lower cardiovascular risk (Harrison's, passage\u202f960).",
+      "priority": "MED"
+     },
+     {
+      "title": "Start Moderate\u2011Intensity Statin Therapy",
+      "body": "Initiate a moderate\u2011intensity statin (e.g., atorvastatin 10\u201320\u202fmg daily) to lower LDL\u2011C and reduce ASCVD risk in a diabetic patient without known ASCVD, as recommended for primary prevention (Harrison's, passages\u202f967\u202f&\u202f1063).",
+      "priority": "MED"
+     }
+    ],
+    "reasoning": "- The patient\u2019s uncontrolled diabetes stems from a recent two\u2011month interruption of metformin; restarting it directly addresses the primary therapeutic gap and aligns with guideline emphasis on avoiding severe hypoglycemia while improving glycemic control (passage\u202f997).  \n- Diabetic peripheral neuropathy is strongly linked to chronic hyperglycemia; better glucose control (via metformin) has been shown to lower long\u2011term neuropathy risk (passage\u202f965). Addressing modifiable contributors (BMI, smoking, hypertension, triglycerides) further supports neuropathy management.  \n- Blood pressure remains above the target despite lisinopril; the guideline advises using two agents to reach <150/90\u202fmmHg, with most drug classes having comparable efficacy (passage\u202f960). Adding a thiazide is a standard, evidence\u2011based step.  \n- Hyperlipidemia is untreated; ADA/Harrison recommendations advise at least moderate\u2011intensity statin therapy for adults with diabetes without ASCVD to achieve LDL\u2011C reduction and cardiovascular event prevention (passages\u202f967\u202f&\u202f1063).  \n\n---",
+    "safety_note": "- **Allergies**: Patient is allergic to penicillin \u2013 no recommendations involve \u03b2\u2011lactam antibiotics.  \n- **Metformin**: Monitor for gastrointestinal upset and rare lactic acidosis, especially if renal function declines.  \n- **Lisinopril**: Watch for cough or angioedema; counsel patient to report any swelling or breathing difficulty.  \n- **Thiazide Diuretic**: Monitor electrolytes (especially potassium) and renal function; advise adequate hydration.  \n- **Statin**: Counsel about muscle pain (myalgia) and check baseline liver enzymes; re\u2011check if symptoms develop.  \n\n*These suggestions are decision\u2011support tools and should be finalized by the treating clinician.*",
+    "passages": [
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 997 \u00b7 Topic: Type 2 diabetes, uncontrolled due to lack of metformin",
+      "text": ". T1DM, type 1 diabetes mellitus; T2DM, type 2 diabetes mellitus. (Reprinted with permission from The American Diabetes Association. Copyright 2012 by the American Diabetes Association.) HbA1c or lower glycemic goals even at elevated HbA1c levels (8\u201310%), as they represent an increased prob ability of recent antecedent hypoglycemia. Hypoglycemia Risk Factor Reduction Several multicenter, randomized controlled trials investigat ing the potential benefits of tight glucose control in either inpatient or outpatient settings have reported a high prevalence of severe hypoglycemia. In the NICE SUGAR study, attempts to control in-hospital plasma glucose values toward physiologic levels resulted in increased mortality risk. The ADVANCE and ACCORD studies and the Veterans Affairs Diabetes Trial (VADT) also found a significant incidence of severe hypoglycemia among T2DM patients. Severe hypoglycemia with accompanying serious cardio vascular morbidity and mortality also occurred in the standard (e.g., not receiving intensified treat ment) control group in all of the above studies and in another large study in prediabetic and T2DM individuals (ORIGIN)"
+     },
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 671 \u00b7 Topic: Type 2 diabetes, uncontrolled due to lack of metformin",
+      "text": ". Neuromuscular junction disorders with autonomic involvement include botulism and Lambert-Eaton myasthenic syndrome (Chaps. 457\u2013459). Diabetes Mellitus Diabetes mellitus remains one of the leading causes of peripheral autonomic neuropathy. The presence of autonomic neuropathy increases the mortality rate of diabetes up to threefold, even after adjusting for other cardiovascular risk factors. The neuropathy risk correlates with the product of the patient\u2019s hemoglobin A1c values and the duration of the diabetes. Early autonomic impairment is most often 3550 manifest as cardiovascular parasympathetic hypofunction. As diabetes progresses, sympathetic hypofunction follows, dominated by OH. The autonomic involvement also predicts other complications including cor onary artery disease, renal disease, stroke, and sleep apnea. It also plays a significant role in the gastrointestinal dysmotility, which may further complicate glycemic control. Improved glycemic control significantly reduces the long-term risk of autonomic cardiovascular neuropathy. Diabetes mellitus is discussed in Chaps. 415\u2013417"
+     },
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 965 \u00b7 Topic: Diabetic peripheral neuropathy in both feet",
+      "text": ". \u25a0NEUROPATHY AND DIABETES MELLITUS Diabetic neuropathy, which occurs in ~50% of individuals with long standing type 1 and type 2 DM, manifests as a diffuse neuropathy (distal symmetrical polyneuropathy and/or autonomic neuropathy), a mononeuropathy, and/or a radiculopathy/polyradiculopathy. As with other complications of DM, the development of neuropathy correlates with the duration of diabetes and glycemic control. Additional risk factors are body mass index (BMI) (the greater the BMI, the greater the risk of neuropathy) and smoking. The presence of ASCVD, ele vated triglycerides, and hypertension is also associated with diabetic peripheral neuropathy. Both myelinated and unmyelinated nerve fibers are lost. Because the clinical features of diabetic neuropathy are similar to those of other neuropathies, the diagnosis of diabetic neuropathy should be made only after other possible etiologies are excluded (Chap. 457). Distal Symmetric Polyneuropathy (DSPN) DSPN, the most common form of diabetic neuropathy, most frequently presents with distal sensory loss and pain, but up to 50% of patients do not have symptoms of neuropathy"
+     },
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 1009 \u00b7 Topic: Diabetic peripheral neuropathy in both feet",
+      "text": "(cisplatin, carboplatin, oxaliplatin) Peripheral neuropathy, hearing loss, renal tubular dysfunction, interstitial pneumonitis, second malignancies Vinca alkaloids (vincristine, vinblastine) Peripheral neuropathy Taxanes (paclitaxel, docetaxel) Peripheral neuropathy, interstitial pneumonitis, cognitive impairment Aromatase inhibitors (anastrozole, letrozole, fulvestrant) Vasomotor symptoms, fractures Antiandrogens (apalutamide, bicalutamide, darolutamide, enzalutamide, flutamide, nilutamide) Sexual dysfunction Immunotherapy Agents Immune checkpoint inhibitors (nivolumab, pembrolizumab, cemiplimab, avelumab, durvalumab, atezolizumab, dostarlimab, ipilimumab) Autoimmune conditions, myocarditis, pericarditis, peripheral neuropathy Bispecific T-cell engagers (mosunetuzumab, glofitamab, epcoritamab) Recurrent infections CAR-T therapy Acute leukemia, myelodysplasia, T-cell lymphoma, peripheral neuropathy, recurrent infections Targeted Agents Antibody-drug conjugates (brentuximab, polatuzumab, gemtuzumab) Interstitial pneumonitis, peripheral neuropathy, sinusoidal obstruction syndrome Immunomodulatory agents (thalidomide, lenalidomide, pomalidomide) Second malignancies, prolonged"
+     },
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 710 \u00b7 Topic: Hypertension not at goal on current lisinopril therapy",
+      "text": ". Both normotensive and hypertensive women have higher blood pressure levels during the fol licular phase than during the luteal phase. In the Nurses\u2019 Health Study, the relative risk of hypertension was 1.8 in current users of oral contra ceptives, but this risk is lower with the newer low-dose contraceptive preparations. Long-term data from this cohort also demonstrate that having gestational hypertension or preeclampsia during a first preg nancy doubled the rate of developing chronic hypertension. HT is not associated with hypertension. Among secondary causes of hyperten sion, there is a female preponderance of renal artery fibromuscular dysplasia. The benefits of treatment for hypertension have been dramatic in both women and men. A meta-analysis of the effects of hypertension treatment, the Individual Data Analysis of Antihypertensive Interven tion Trial, found a reduction of risk for stroke and major cardiovascular events in women. The effectiveness of various antihypertensive drugs appears to be comparable in women and men; however, women may experience more side effects, such as cough with angiotensin-converting enzyme inhibitors. \u25a0AUTOIMMUNE DISORDERS (See also Chap"
+     },
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 960 \u00b7 Topic: Hypertension not at goal on current lisinopril therapy",
+      "text": ". Risk factors for radiocontrast-induced nephrotoxicity are preexisting nephropathy and volume depletion. Individuals with DM undergoing radiographic procedures with iodinated contrast dye should be well hydrated before and after dye exposure, and the serum creatinine should be monitored for 24\u201348 h following the procedure. 0 3 5 1 10 5 20 Albuminuria 25 GFR, mL/min 120 150 150 120 60 < 20 mL/min/1.73 m2. Many individuals with type 1 or type 2 DM develop hyperten sion. Hypertension accelerates complications of DM, particularly ASCVD, nephropathy, and retinopathy. Blood pressure should be measured at every clinic visit; individuals should also be encour aged to monitor their blood pressure at home. The blood pressure goal should be 150/90 mmHg, initial treatment should consist of two antihyper tensive medications. Multiple agents are often required to control blood pressure. In pregnant individuals with diabetes and chronic hypertension, blood pressure control is associated with better preg nancy outcomes"
+     },
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 967 \u00b7 Topic: Hyperlipidemia not currently treated",
+      "text": ". Aspirin is not recom mended for primary prevention in those with a low cardiovascular risk (1.7 mmol/L [150 mg/dL]) or low HDL cholesterol (5.7 mmol/L (500 mg/dL) on a statin, icosapent or fenofibrate can be considered to reduce ASCVD risk. The addition of fenofibrate may require reduction in statin dose to minimize the risk of myopathy. In terms of pharmacologic therapy directed at LDL, the ADA rec ommends the following in addition to lifestyle: (1) all patients with diabetes and ASCVD should receive high-intensity statin therapy (atorvastatin 40\u201380 mg or rosuvastatin 20\u201340 mg) with a goal of >50% reduction in LDL and a cholesterol goal of 75 years on a statin, continue statin or, if not on a statin, consider starting moderate-intensity statin therapy after discussion with the patient; and (6) in patients aged 20\u201339 years with additional risk factors, consider moderate-intensity statin therapy. If a patient with ASCVD cannot tolerate a statin, consider PCSK9 inhibitor therapy (monoclonal antibody or inclisiran, a small interfering RNA), or bempedoic acid. Statin therapy, when combined with fibrate or nia cin, for reduction of LDL does not provide additional benefit"
+     },
+     {
+      "source": "Harrison's Principles of Internal Medicine, passage 1063 \u00b7 Topic: Hyperlipidemia not currently treated",
+      "text": ". The magnitude of LDL-C lowering associated with statin treatment (~30\u201355%) varies by statin and among individuals, but once a patient is on a statin, the doubling of the statin dose produces a ~6% further reduction in the level of plasma LDL-C. An extensive body of randomized clinical trials has clearly established that statin therapy significantly reduces major cardiovascular events (and in some cases total mortality) in both primary and secondary prevention settings. The seven statins currently available differ in their LDL-C\u2013reducing potency (Table 419-4). Current recommendations are to use high-intensity statin therapy in patients with ASCVD or deemed at high risk of ASCVD. Statins also modestly reduce plasma TGs in a dose-dependent fash ion roughly proportional to their LDL-C\u2013lowering effects. Statins, taken in tablet form once a day, are remarkably safe and well tolerated. The most important side effect associated with statin therapy is muscle pain, or myalgia, which occurs in 3\u20135% of patients, some of whom are unable to tolerate any statin"
+     }
+    ],
+    "decisions": {}
+   },
+   "chart": {
+    "linked": true,
+    "context": {
+     "problems": "Essential hypertension \u00b7 Type 2 diabetes mellitus without complications",
+     "medications": "Lisinopril 10 mg tablet",
+     "allergies": "Penicillin",
+     "vitals": "BP 152/80 \u00b7 T 97.6\u00b0F \u00b7 SpO\u2082 98% \u00b7 RR 14 \u00b7 HR 72",
+     "labs": "HbA1c 5.1% \u00b7 25 Aug 2026 \u00b7 Glucose 114 mg/dL (High)"
+    },
+    "coverage": "PPO"
+   },
+   "medication_safety": [
+    {
+     "label": "Penicillin allergy",
+     "status": "Pass",
+     "tone": "green",
+     "detail": "No related agent in active meds or plan"
+    },
+    {
+     "label": "Duplicate therapy",
+     "status": "Pass",
+     "tone": "green",
+     "detail": "1 active medication(s)"
+    },
+    {
+     "label": "Polypharmacy",
+     "status": "Pass",
+     "tone": "green",
+     "detail": "Fewer than 5 active medications"
+    }
+   ],
+   "care_gaps": [
+    {
+     "label": "HbA1c control",
+     "status": "Met",
+     "tone": "green",
+     "detail": "Latest HbA1c 5.1%"
+    },
+    {
+     "label": "Diabetic eye exam",
+     "status": "Open",
+     "tone": "amber",
+     "detail": "No eye exam found"
+    },
+    {
+     "label": "Kidney health evaluation",
+     "status": "Due",
+     "tone": "amber",
+     "detail": "eGFR + uACR not both on file"
+    },
+    {
+     "label": "Blood pressure control",
+     "status": "Open",
+     "tone": "amber",
+     "detail": "Latest BP 152/80 (goal < 140/90)"
+    }
+   ],
+   "insights": [
+    {
+     "name": "Type 2 diabetes mellitus with diabetic polyneuropathy",
+     "category": "Diagnoses"
+    },
+    {
+     "name": "Type 2 diabetes mellitus with hyperglycemia",
+     "category": "Diagnoses"
+    },
+    {
+     "name": "Hypertension",
+     "category": "Diagnoses"
+    },
+    {
+     "name": "Hyperlipidemia",
+     "category": "Diagnoses"
+    },
+    {
+     "name": "A1C Test",
+     "category": "Tests/Procedures"
+    },
+    {
+     "name": "Lipid Panel",
+     "category": "Tests/Procedures"
+    },
+    {
+     "name": "Basic Metabolic Panel",
+     "category": "Tests/Procedures"
+    },
+    {
+     "name": "Established Patient Office Visit",
+     "category": "Tests/Procedures"
+    }
+   ],
+   "handoff": "Queued for coding",
+   "permissions": {
+    "edit": false,
+    "sign": false
+   },
+   "master_insights": [
+    "Diabetes (Type 2)",
+    "Hypertension",
+    "Hyperlipidemia",
+    "Asthma",
+    "Osteoarthritis",
+    "Obesity",
+    "Smoking History",
+    "Alcohol Use",
+    "Anxiety",
+    "Depression",
+    "Fever",
+    "Chronic Cough",
+    "Fatigue",
+    "Headache",
+    "Chest Pain",
+    "Nausea",
+    "Color Blindness",
+    "Complete Blood Count",
+    "A1C Test",
+    "Chest X-ray",
+    "CT Scan",
+    "MRI",
+    "Ultrasound",
+    "Blood Glucose Test"
+   ]
+  },
+  "/api/coding/queue": {
+   "queue": [
+    {
+     "id": "PT-30882253",
+     "version": 9,
+     "name": "William Young",
+     "mrn": "MRN500031",
+     "patient_id": "P100031",
+     "encounter_id": "ENC-E72464F65C",
+     "doctor": "Dr.Carter",
+     "date": "23/11/2026",
+     "time": "17:24",
+     "status": "Approved",
+     "approval_date": "23/11/2026",
+     "assigned_to": "dr.carter",
+     "coding_status": "Queued for coding",
+     "bill_generated_at": "23 Nov 2026 17:24",
+     "stage": "Billed",
+     "decided": 8
+    }
+   ]
+  },
+  "/api/coding/PT-30882253": {
+   "summary": {
+    "id": "PT-30882253",
+    "version": 9,
+    "name": "William Young",
+    "mrn": "MRN500031",
+    "patient_id": "P100031",
+    "encounter_id": "ENC-E72464F65C",
+    "doctor": "Dr.Carter",
+    "date": "23/11/2026",
+    "time": "17:24",
+    "status": "Approved",
+    "approval_date": "23/11/2026",
+    "assigned_to": "dr.carter",
+    "coding_status": "Queued for coding",
+    "bill_generated_at": "23 Nov 2026 17:24",
+    "stage": "Billed"
+   },
+   "note": {
+    "signed": true,
+    "text": "Subjective:\nHigh blood sugar readings in the mornings.\n\nPatient reports fasting blood sugars ranging from 220 to 260 mg/dL for the past two months after running out of metformin and not refilling it. He experiences constant thirst, wakes 2-3 times nightly to urinate, and has had numbness, tingling, and burning in both feet for the last few months, worse at night. No foot ulcers or cuts are present.\n\nType 2 diabetes mellitus, hypertension, hyperlipidemia, penicillin allergy (hives).\n\nLisinopril 10 mg daily.\n\nObjective:\nBlood pressure 152/88 mmHg, pulse 78 bpm. Foot exam: decreased sensation to monofilament bilaterally, intact skin, no ulcers, normal pulses. Blood drawn for A1c, lipid panel, and basic metabolic panel.\n\nAssessment:\n1) Type 2 diabetes, uncontrolled due to lack of metformin. 2) Diabetic peripheral neuropathy in both feet. 3) Hypertension not at goal on current lisinopril therapy. 4) Hyperlipidemia not currently treated.\n\nPlan:\nReview clinical decision support for diabetes, hypertension, hyperlipidemia, and neuropathy and finalize a treatment plan, including appropriate medication adjustments.\n\u2022 Restart Metformin (low\u2011dose, titrate upward)\n\u2022 Tighten Glycemic Control to Mitigate Neuropathy\n\u2022 Add a Second Antihypertensive Agent (e.g., thiazide diuretic)\n\u2022 Start Moderate\u2011Intensity Statin Therapy",
+    "signed_by": "dr.carter",
+    "approval_date": "23/11/2026"
+   },
+   "rows": [
+    {
+     "key": "ICD:E11.42",
+     "type": "ICD-10-CM",
+     "code": "E11.42",
+     "term": "Type 2 diabetes mellitus with diabetic polyneuropathy",
+     "description": "Type 2 diabetes mellitus with diabetic polyneuropathy",
+     "hcc": "HCC 37",
+     "match": 100,
+     "status": "Accepted",
+     "excerpt": "Type 2 diabetes mellitus, hypertension, hyperlipidemia, penicillin allergy (hives).",
+     "meat": {
+      "M": true,
+      "E": true,
+      "A": true,
+      "T": true
+     },
+     "cdi": false
+    },
+    {
+     "key": "ICD:E11.65",
+     "type": "ICD-10-CM",
+     "code": "E11.65",
+     "term": "Type 2 diabetes mellitus with hyperglycemia",
+     "description": "Type 2 diabetes mellitus with hyperglycemia",
+     "hcc": "HCC 38",
+     "match": 100,
+     "status": "Accepted",
+     "excerpt": "Type 2 diabetes mellitus, hypertension, hyperlipidemia, penicillin allergy (hives).",
+     "meat": {
+      "M": true,
+      "E": true,
+      "A": true,
+      "T": true
+     },
+     "cdi": false
+    },
+    {
+     "key": "ICD:I10",
+     "type": "ICD-10-CM",
+     "code": "I10",
+     "term": "Hypertension",
+     "description": "Essential (primary) hypertension",
+     "hcc": "",
+     "match": 100,
+     "status": "Accepted",
+     "excerpt": "Third, hypertension that is not at goal on lisinopril.",
+     "meat": {
+      "M": true,
+      "E": true,
+      "A": true,
+      "T": true
+     },
+     "cdi": false
+    },
+    {
+     "key": "ICD:E78.5",
+     "type": "ICD-10-CM",
+     "code": "E78.5",
+     "term": "Hyperlipidemia, unspecified",
+     "description": "Hyperlipidemia, unspecified",
+     "hcc": "",
+     "match": 100,
+     "status": "Accepted",
+     "excerpt": "4) Hyperlipidemia not currently treated.",
+     "meat": {
+      "M": true,
+      "E": true,
+      "A": true,
+      "T": true
+     },
+     "cdi": true
+    },
+    {
+     "key": "CPT:83036",
+     "type": "CPT",
+     "code": "83036",
+     "term": "A1C Test",
+     "description": "Hemoglobin A1c",
+     "hcc": "",
+     "match": 55,
+     "status": "Accepted",
+     "procedure_status": "performed",
+     "excerpt": "Blood drawn for A1c, lipid panel, and basic metabolic panel."
+    },
+    {
+     "key": "CPT:99213",
+     "type": "CPT \u00b7 E/M",
+     "code": "99213",
+     "term": "Established Patient Office Visit",
+     "description": "Established patient office visit",
+     "hcc": "",
+     "match": 100,
+     "status": "Accepted",
+     "procedure_status": "unknown",
+     "excerpt": "",
+     "mdm": "Low"
+    },
+    {
+     "key": "CPT:80048",
+     "type": "CPT",
+     "code": "80048",
+     "term": "basic metabolic panel",
+     "description": "Basic metabolic panel",
+     "hcc": "",
+     "match": 100,
+     "status": "Accepted",
+     "procedure_status": "performed",
+     "excerpt": "Blood drawn for A1c, lipid panel, and basic metabolic panel."
+    },
+    {
+     "key": "CPT:80061",
+     "type": "CPT",
+     "code": "80061",
+     "term": "lipid panel",
+     "description": "Lipid panel",
+     "hcc": "",
+     "match": 100,
+     "status": "Accepted",
+     "procedure_status": "performed",
+     "excerpt": "Blood drawn for A1c, lipid panel, and basic metabolic panel."
+    }
+   ],
+   "pre_checks": {
+    "checks": [
+     {
+      "name": "Clinical note signed",
+      "status": "pass",
+      "detail": "Coding the signed, locked SOAP note"
+     },
+     {
+      "name": "SOAP sections complete",
+      "status": "pass",
+      "detail": "Subjective, Objective, Assessment and Plan present"
+     },
+     {
+      "name": "Assessment documented",
+      "status": "pass",
+      "detail": "Assessment supports diagnosis coding"
+     },
+     {
+      "name": "Encounter identifiers",
+      "status": "pass",
+      "detail": "Encounter ID, date of service and provider present"
+     },
+     {
+      "name": "Source documentation",
+      "status": "pass",
+      "detail": "Transcript attached for code provenance"
+     },
+     {
+      "name": "Codable content",
+      "status": "pass",
+      "detail": "8 clinical concept(s) detected"
+     },
+     {
+      "name": "Patient linked to EHR",
+      "status": "pass",
+      "detail": "P100031"
+     },
+     {
+      "name": "Coverage on file",
+      "status": "pass",
+      "detail": "Care Gap Health \u00b7 active"
+     }
+    ],
+    "status": "pass",
+    "label": "Clean \u00b7 all checks passed",
+    "fails": 0,
+    "warnings": 0,
+    "score": 100,
+    "total": 8
+   },
+   "post_checks": {
+    "checks": [
+     {
+      "name": "Primary diagnosis",
+      "status": "pass",
+      "detail": "E11.42 accepted (+3 more)"
+     },
+     {
+      "name": "Procedure\u2013diagnosis linkage",
+      "status": "pass",
+      "detail": "4 service(s) supported by 4 diagnosis code(s)"
+     },
+     {
+      "name": "Accepted services performed",
+      "status": "pass",
+      "detail": "Every accepted service is documented as performed"
+     },
+     {
+      "name": "Open physician queries",
+      "status": "pass",
+      "detail": "No unresolved queries"
+     },
+     {
+      "name": "Coder decisions",
+      "status": "pass",
+      "detail": "Every code has a coder decision"
+     },
+     {
+      "name": "Diagnosis specificity",
+      "status": "warn",
+      "detail": "Unspecified code(s): E78.5 \u2014 query if documentation supports more detail"
+     },
+     {
+      "name": "HCC MEAT support",
+      "status": "pass",
+      "detail": "2 HCC diagnosis(es) supported by MEAT documentation"
+     },
+     {
+      "name": "E/M level",
+      "status": "pass",
+      "detail": "99213 accepted"
+     },
+     {
+      "name": "Claim scrub \u00b7 em level review",
+      "status": "warn",
+      "detail": "Documentation includes multiple chronic conditions plus diagnostic workup. Review whether 99213 or 99214 is supported; do not automatically upcode."
+     }
+    ],
+    "status": "warn",
+    "label": "Ready with 2 warnings",
+    "fails": 0,
+    "warnings": 2,
+    "score": 90,
+    "total": 9
+   },
+   "totals": {
+    "icd": 4,
+    "cpt": 4,
+    "accepted": 8,
+    "rejected": 0,
+    "queries": 0,
+    "hccs": [
+     "HCC 37",
+     "HCC 38"
+    ],
+    "em_code": "99213",
+    "mdm": "Low"
+   },
+   "audit": [
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "CPT:80061",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    },
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "CPT:80048",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    },
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "CPT:99213",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    },
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "CPT:83036",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    },
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "ICD:E78.5",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    },
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "ICD:I10",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    },
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "ICD:E11.65",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    },
+    {
+     "at": "23 Nov 2026 17:24",
+     "code": "ICD:E11.42",
+     "action": "Accepted",
+     "note": "",
+     "by": "coder.lee"
+    }
+   ],
+   "can_edit": true,
+   "matcher_version": "5"
+  },
+  "/api/billing/queue": {
+   "queue": [
+    {
+     "id": "PT-30882253",
+     "version": 9,
+     "name": "William Young",
+     "mrn": "MRN500031",
+     "patient_id": "P100031",
+     "encounter_id": "ENC-E72464F65C",
+     "doctor": "Dr.Carter",
+     "date": "23/11/2026",
+     "time": "17:24",
+     "status": "Approved",
+     "approval_date": "23/11/2026",
+     "assigned_to": "dr.carter",
+     "coding_status": "Queued for coding",
+     "bill_generated_at": "23 Nov 2026 17:24",
+     "stage": "Billed"
+    }
+   ]
+  },
+  "/api/billing/PT-30882253": {
+   "summary": {
+    "id": "PT-30882253",
+    "version": 9,
+    "name": "William Young",
+    "mrn": "MRN500031",
+    "patient_id": "P100031",
+    "encounter_id": "ENC-E72464F65C",
+    "doctor": "Dr.Carter",
+    "date": "23/11/2026",
+    "time": "17:24",
+    "status": "Approved",
+    "approval_date": "23/11/2026",
+    "assigned_to": "dr.carter",
+    "coding_status": "Queued for coding",
+    "bill_generated_at": "23 Nov 2026 17:24",
+    "stage": "Billed"
+   },
+   "encounter_type": "OPD",
+   "guardrail": [
+    {
+     "code": "83036",
+     "service": "Hemoglobin A1c",
+     "order": "Performed",
+     "evidence": "Blood drawn for A1c, lipid panel, and basic metabolic panel.",
+     "documentation": "Transcript only",
+     "guardrail": "BILLABLE",
+     "tone": "green",
+     "reason": "Performed and documented",
+     "overridden": false,
+     "overridable": false
+    },
+    {
+     "code": "99213",
+     "service": "Established patient office visit",
+     "order": "Performed",
+     "evidence": "No performed evidence found",
+     "documentation": "Signed note",
+     "guardrail": "BILLABLE",
+     "tone": "green",
+     "reason": "Encounter documented (E/M visit)",
+     "overridden": false,
+     "overridable": false
+    },
+    {
+     "code": "80048",
+     "service": "Basic metabolic panel",
+     "order": "Performed",
+     "evidence": "Blood drawn for A1c, lipid panel, and basic metabolic panel.",
+     "documentation": "Signed note",
+     "guardrail": "BILLABLE",
+     "tone": "green",
+     "reason": "Performed and documented",
+     "overridden": false,
+     "overridable": false
+    },
+    {
+     "code": "80061",
+     "service": "Lipid panel",
+     "order": "Performed",
+     "evidence": "Blood drawn for A1c, lipid panel, and basic metabolic panel.",
+     "documentation": "Signed note",
+     "guardrail": "BILLABLE",
+     "tone": "green",
+     "reason": "Performed and documented",
+     "overridden": false,
+     "overridable": false
+    }
+   ],
+   "bill_rows": [
+    {
+     "CPT/HCPCS Code": "83036",
+     "Service Description": "Hemoglobin A1c",
+     "Department": "Laboratory",
+     "Quantity": 1,
+     "Unit Charge": "$110.00",
+     "Gross Charge": "$110.00",
+     "Pricing Status": "Priced"
+    },
+    {
+     "CPT/HCPCS Code": "99213",
+     "Service Description": "Hospital Outpatient Clinic Visit Level 3",
+     "Department": "Hospital Clinic",
+     "Quantity": 1,
+     "Unit Charge": "$315.00",
+     "Gross Charge": "$315.00",
+     "Pricing Status": "Priced"
+    },
+    {
+     "CPT/HCPCS Code": "80048",
+     "Service Description": "Basic Metabolic Panel",
+     "Department": "Laboratory",
+     "Quantity": 1,
+     "Unit Charge": "$185.00",
+     "Gross Charge": "$185.00",
+     "Pricing Status": "Priced"
+    },
+    {
+     "CPT/HCPCS Code": "80061",
+     "Service Description": "Lipid Panel",
+     "Department": "Laboratory",
+     "Quantity": 1,
+     "Unit Charge": "$215.00",
+     "Gross Charge": "$215.00",
+     "Pricing Status": "Priced"
+    }
+   ],
+   "total": 825.0,
+   "held_value": 0,
+   "unpriced": [],
+   "post_checks": {
+    "checks": [
+     {
+      "name": "Primary diagnosis",
+      "status": "pass",
+      "detail": "E11.42 accepted (+3 more)"
+     },
+     {
+      "name": "Procedure\u2013diagnosis linkage",
+      "status": "pass",
+      "detail": "4 service(s) supported by 4 diagnosis code(s)"
+     },
+     {
+      "name": "Accepted services performed",
+      "status": "pass",
+      "detail": "Every accepted service is documented as performed"
+     },
+     {
+      "name": "Open physician queries",
+      "status": "pass",
+      "detail": "No unresolved queries"
+     },
+     {
+      "name": "Coder decisions",
+      "status": "pass",
+      "detail": "Every code has a coder decision"
+     },
+     {
+      "name": "Diagnosis specificity",
+      "status": "warn",
+      "detail": "Unspecified code(s): E78.5 \u2014 query if documentation supports more detail"
+     },
+     {
+      "name": "HCC MEAT support",
+      "status": "pass",
+      "detail": "2 HCC diagnosis(es) supported by MEAT documentation"
+     },
+     {
+      "name": "E/M level",
+      "status": "pass",
+      "detail": "99213 accepted"
+     },
+     {
+      "name": "Claim scrub \u00b7 em level review",
+      "status": "warn",
+      "detail": "Documentation includes multiple chronic conditions plus diagnostic workup. Review whether 99213 or 99214 is supported; do not automatically upcode."
+     }
+    ],
+    "status": "warn",
+    "label": "Ready with 2 warnings",
+    "fails": 0,
+    "warnings": 2,
+    "score": 90,
+    "total": 9
+   },
+   "exceptions": [],
+   "notice": "This draft contains gross chargemaster-based demo charges only. It is not a finalized claim, payer-allowed amount, or patient responsibility amount. Professional coding and billing validation is required.",
+   "sent": {
+    "at": "23 Nov 2026 17:24",
+    "by": "rcm.patel",
+    "exceptions": []
+   },
+   "blockers": [],
+   "can_override": true,
+   "can_send": true
+  },
+  "/api/oversight": {
+   "rows": [
+    {
+     "Patient": "William Young",
+     "MRN": "MRN500031",
+     "Patient ID": "P100031",
+     "Encounter": "ENC-E72464F65C",
+     "Workflow": "Consultation",
+     "Stage": "Billed",
+     "Owner": "Dr.Carter",
+     "Updated": "2026-11-23T17:24",
+     "Pending item": "Claim draft sent to RCM",
+     "Priority": "Routine",
+     "record_id": "PT-30882253",
+     "version": 9
+    },
+    {
+     "Patient": "Liron Sarangi",
+     "MRN": "MRN100052",
+     "Patient ID": "P100052",
+     "Encounter": "ENC-041181EEBC",
+     "Workflow": "Outpatient",
+     "Stage": "EHR record",
+     "Owner": "dr.noor",
+     "Updated": "2026-10-17T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "NANDAN ROY",
+     "MRN": "MRN100051",
+     "Patient ID": "P100051",
+     "Encounter": "ENC-C8D2DE97EB",
+     "Workflow": "Outpatient",
+     "Stage": "EHR record",
+     "Owner": "dR.mOHAN",
+     "Updated": "2026-10-15T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Olivia Johnson",
+     "MRN": "MRN500001",
+     "Patient ID": "P100001",
+     "Encounter": "ENC0011",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-09-20T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Liam Williams",
+     "MRN": "MRN500002",
+     "Patient ID": "P100002",
+     "Encounter": "ENC0021",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-09-18T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Emma Brown",
+     "MRN": "MRN500003",
+     "Patient ID": "P100003",
+     "Encounter": "ENC0031",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-09-16T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Noah Jones",
+     "MRN": "MRN500004",
+     "Patient ID": "P100004",
+     "Encounter": "ENC0041",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-09-14T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Ava Garcia",
+     "MRN": "MRN500005",
+     "Patient ID": "P100005",
+     "Encounter": "ENC0051",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-09-12T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Oliver Miller",
+     "MRN": "MRN500006",
+     "Patient ID": "P100006",
+     "Encounter": "ENC0061",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-09-10T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Sophia Davis",
+     "MRN": "MRN500007",
+     "Patient ID": "P100007",
+     "Encounter": "ENC0071",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-09-08T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Elijah Rodriguez",
+     "MRN": "MRN500008",
+     "Patient ID": "P100008",
+     "Encounter": "ENC0081",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-09-06T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Isabella Martinez",
+     "MRN": "MRN500009",
+     "Patient ID": "P100009",
+     "Encounter": "ENC0091",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-09-04T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "James Hernandez",
+     "MRN": "MRN500010",
+     "Patient ID": "P100010",
+     "Encounter": "ENC0101",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-09-02T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Mia Lopez",
+     "MRN": "MRN500011",
+     "Patient ID": "P100011",
+     "Encounter": "ENC0111",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-08-31T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "William Gonzalez",
+     "MRN": "MRN500012",
+     "Patient ID": "P100012",
+     "Encounter": "ENC0121",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-08-29T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Charlotte Wilson",
+     "MRN": "MRN500013",
+     "Patient ID": "P100013",
+     "Encounter": "ENC0131",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-08-27T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Benjamin Anderson",
+     "MRN": "MRN500014",
+     "Patient ID": "P100014",
+     "Encounter": "ENC0141",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-08-25T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Amelia Thomas",
+     "MRN": "MRN500015",
+     "Patient ID": "P100015",
+     "Encounter": "ENC0151",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-08-23T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Lucas Taylor",
+     "MRN": "MRN500016",
+     "Patient ID": "P100016",
+     "Encounter": "ENC0161",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-08-21T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Harper Moore",
+     "MRN": "MRN500017",
+     "Patient ID": "P100017",
+     "Encounter": "ENC0171",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-08-19T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Henry Jackson",
+     "MRN": "MRN500018",
+     "Patient ID": "P100018",
+     "Encounter": "ENC0181",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-08-17T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Evelyn Martin",
+     "MRN": "MRN500019",
+     "Patient ID": "P100019",
+     "Encounter": "ENC0191",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-08-15T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Theodore Lee",
+     "MRN": "MRN500020",
+     "Patient ID": "P100020",
+     "Encounter": "ENC0201",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-08-13T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Liam Perez",
+     "MRN": "MRN500021",
+     "Patient ID": "P100021",
+     "Encounter": "ENC0211",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-08-11T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Jack Thompson",
+     "MRN": "MRN500022",
+     "Patient ID": "P100022",
+     "Encounter": "ENC0221",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-08-09T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Noah White",
+     "MRN": "MRN500023",
+     "Patient ID": "P100023",
+     "Encounter": "ENC0231",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-08-07T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Levi Harris",
+     "MRN": "MRN500024",
+     "Patient ID": "P100024",
+     "Encounter": "ENC0241",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-08-05T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Oliver Sanchez",
+     "MRN": "MRN500025",
+     "Patient ID": "P100025",
+     "Encounter": "ENC0251",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-08-03T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Alexander Clark",
+     "MRN": "MRN500026",
+     "Patient ID": "P100026",
+     "Encounter": "ENC0261",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-08-01T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Elijah Ramirez",
+     "MRN": "MRN500027",
+     "Patient ID": "P100027",
+     "Encounter": "ENC0271",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-07-30T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Jackson Lewis",
+     "MRN": "MRN500028",
+     "Patient ID": "P100028",
+     "Encounter": "ENC0281",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-07-28T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "James Robinson",
+     "MRN": "MRN500029",
+     "Patient ID": "P100029",
+     "Encounter": "ENC0291",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-07-26T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Mateo Walker",
+     "MRN": "MRN500030",
+     "Patient ID": "P100030",
+     "Encounter": "ENC0301",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-07-24T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Daniel Allen",
+     "MRN": "MRN500032",
+     "Patient ID": "P100032",
+     "Encounter": "ENC0321",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-07-20T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Benjamin King",
+     "MRN": "MRN500033",
+     "Patient ID": "P100033",
+     "Encounter": "ENC0331",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-07-18T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Michael Wright",
+     "MRN": "MRN500034",
+     "Patient ID": "P100034",
+     "Encounter": "ENC0341",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-07-16T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Lucas Scott",
+     "MRN": "MRN500035",
+     "Patient ID": "P100035",
+     "Encounter": "ENC0351",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-07-14T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Mason Torres",
+     "MRN": "MRN500036",
+     "Patient ID": "P100036",
+     "Encounter": "ENC0361",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-07-12T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Henry Nguyen",
+     "MRN": "MRN500037",
+     "Patient ID": "P100037",
+     "Encounter": "ENC0371",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-07-10T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Sebastian Hill",
+     "MRN": "MRN500038",
+     "Patient ID": "P100038",
+     "Encounter": "ENC0381",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-07-08T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Theodore Flores",
+     "MRN": "MRN500039",
+     "Patient ID": "P100039",
+     "Encounter": "ENC0391",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-07-06T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Ethan Green",
+     "MRN": "MRN500040",
+     "Patient ID": "P100040",
+     "Encounter": "ENC0401",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-07-04T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Emily Adams",
+     "MRN": "MRN500041",
+     "Patient ID": "P100041",
+     "Encounter": "ENC0411",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-07-02T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Logan Nelson",
+     "MRN": "MRN500042",
+     "Patient ID": "P100042",
+     "Encounter": "ENC0421",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-06-30T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Abigail Baker",
+     "MRN": "MRN500043",
+     "Patient ID": "P100043",
+     "Encounter": "ENC0431",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-06-28T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Owen Hall",
+     "MRN": "MRN500044",
+     "Patient ID": "P100044",
+     "Encounter": "ENC0441",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-06-26T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Ella Rivera",
+     "MRN": "MRN500045",
+     "Patient ID": "P100045",
+     "Encounter": "ENC0451",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Sarah Williams, DO",
+     "Updated": "2026-06-24T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Samuel Campbell",
+     "MRN": "MRN500046",
+     "Patient ID": "P100046",
+     "Encounter": "ENC0461",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "David Martinez, MD",
+     "Updated": "2026-06-22T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Scarlett Mitchell",
+     "MRN": "MRN500047",
+     "Patient ID": "P100047",
+     "Encounter": "ENC0471",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Rachel Kim, MD",
+     "Updated": "2026-06-20T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Jacob Carter",
+     "MRN": "MRN500048",
+     "Patient ID": "P100048",
+     "Encounter": "ENC0481",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "James Wilson, NP",
+     "Updated": "2026-06-18T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Grace Roberts",
+     "MRN": "MRN500049",
+     "Patient ID": "P100049",
+     "Encounter": "ENC0491",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Emily Carter, MD",
+     "Updated": "2026-06-16T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    },
+    {
+     "Patient": "Asher Evans",
+     "MRN": "MRN500050",
+     "Patient ID": "P100050",
+     "Encounter": "ENC0501",
+     "Workflow": "Office Visit",
+     "Stage": "EHR record",
+     "Owner": "Michael Chen, MD",
+     "Updated": "2026-06-14T00:00",
+     "Pending item": "No consultation in this workspace",
+     "Priority": "Routine",
+     "record_id": null,
+     "version": 0
+    }
+   ],
+   "ehr_connected": true,
+   "users": [
+    {
+     "username": "admin",
+     "name": "Admin User",
+     "role": "Super Admin"
+    },
+    {
+     "username": "dr.carter",
+     "name": "Dr.Carter",
+     "role": "Clinical Reviewer"
+    },
+    {
+     "username": "coder.lee",
+     "name": "Coder.Lee",
+     "role": "Coding Specialist"
+    },
+    {
+     "username": "rcm.patel",
+     "name": "Rcm.Patel",
+     "role": "RCM Analyst"
+    }
+   ]
+  },
+  "/api/admin/users": {
+   "users": [
+    {
+     "username": "admin",
+     "name": "Admin User",
+     "email": "",
+     "role": "Super Admin",
+     "active": true,
+     "out_of_office": false,
+     "fallback": null,
+     "must_change_password": false,
+     "last_login": "2026-11-23 17:25:08",
+     "created_at": "2026-11-23 17:24:27",
+     "locked": false
+    },
+    {
+     "username": "dr.carter",
+     "name": "Dr.Carter",
+     "email": "",
+     "role": "Clinical Reviewer",
+     "active": true,
+     "out_of_office": false,
+     "fallback": null,
+     "must_change_password": false,
+     "last_login": "2026-11-23 17:24:27",
+     "created_at": "2026-11-23 17:24:27",
+     "locked": false
+    },
+    {
+     "username": "coder.lee",
+     "name": "Coder.Lee",
+     "email": "",
+     "role": "Coding Specialist",
+     "active": true,
+     "out_of_office": false,
+     "fallback": null,
+     "must_change_password": false,
+     "last_login": "2026-11-23 17:24:28",
+     "created_at": "2026-11-23 17:24:28",
+     "locked": false
+    },
+    {
+     "username": "rcm.patel",
+     "name": "Rcm.Patel",
+     "email": "",
+     "role": "RCM Analyst",
+     "active": true,
+     "out_of_office": false,
+     "fallback": null,
+     "must_change_password": false,
+     "last_login": "2026-11-23 17:24:29",
+     "created_at": "2026-11-23 17:24:29",
+     "locked": false
+    }
+   ],
+   "roles": [
+    "Coding Specialist",
+    "RCM Analyst",
+    "Clinical Reviewer",
+    "Operations Admin",
+    "Super Admin",
+    "Physician / APP",
+    "Care Manager",
+    "HEDIS Analyst",
+    "HEDIS Lead",
+    "Abstractor",
+    "Pharmacist",
+    "Stars / Contract",
+    "Executive",
+    "Auditor"
+   ],
+   "clinical_roles": [
+    "Coding Specialist",
+    "RCM Analyst",
+    "Clinical Reviewer",
+    "Operations Admin",
+    "Super Admin"
+   ]
+  },
+  "/api/admin/roles": {
+   "roles": [
+    "Coding Specialist",
+    "RCM Analyst",
+    "Clinical Reviewer",
+    "Operations Admin",
+    "Super Admin"
+   ],
+   "modules": [
+    "Clinical Overview",
+    "Clinical Review",
+    "Codes",
+    "RCM Workspace",
+    "IPD Billing",
+    "Admin Dashboard",
+    "Super Admin",
+    "EHR Demo Data"
+   ],
+   "actions": [
+    "View",
+    "Edit",
+    "Approve",
+    "Admin"
+   ],
+   "matrix": {
+    "Coding Specialist": {
+     "Clinical Overview": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Clinical Review": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Codes": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": false
+     },
+     "RCM Workspace": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "IPD Billing": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Admin Dashboard": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Super Admin": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "EHR Demo Data": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     }
+    },
+    "RCM Analyst": {
+     "Clinical Overview": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Clinical Review": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Codes": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "RCM Workspace": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": false
+     },
+     "IPD Billing": {
+      "View": true,
+      "Edit": true,
+      "Approve": false,
+      "Admin": false
+     },
+     "Admin Dashboard": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Super Admin": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "EHR Demo Data": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     }
+    },
+    "Clinical Reviewer": {
+     "Clinical Overview": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Clinical Review": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": false
+     },
+     "Codes": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "RCM Workspace": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "IPD Billing": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Admin Dashboard": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Super Admin": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "EHR Demo Data": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     }
+    },
+    "Operations Admin": {
+     "Clinical Overview": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "Clinical Review": {
+      "View": true,
+      "Edit": false,
+      "Approve": true,
+      "Admin": false
+     },
+     "Codes": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "RCM Workspace": {
+      "View": true,
+      "Edit": true,
+      "Approve": false,
+      "Admin": false
+     },
+     "IPD Billing": {
+      "View": true,
+      "Edit": true,
+      "Approve": false,
+      "Admin": false
+     },
+     "Admin Dashboard": {
+      "View": true,
+      "Edit": true,
+      "Approve": false,
+      "Admin": false
+     },
+     "Super Admin": {
+      "View": false,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     },
+     "EHR Demo Data": {
+      "View": true,
+      "Edit": false,
+      "Approve": false,
+      "Admin": false
+     }
+    },
+    "Super Admin": {
+     "Clinical Overview": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Clinical Review": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Codes": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "RCM Workspace": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "IPD Billing": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Admin Dashboard": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "Super Admin": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     },
+     "EHR Demo Data": {
+      "View": true,
+      "Edit": true,
+      "Approve": true,
+      "Admin": true
+     }
+    }
+   },
+   "locked": {
+    "Super Admin": "Always full access",
+    "Clinical Reviewer \u00b7 Codes": "Segregation of duties: clinicians never code"
+   }
+  },
+  "/api/admin/audit?limit=300": {
+   "events": [
+    {
+     "at": "2026-11-23 17:25:08",
+     "actor": "admin",
+     "action": "auth.sign_in",
+     "detail": ""
+    },
+    {
+     "at": "2026-11-23 17:24:48",
+     "actor": "rcm.patel",
+     "action": "claim.send",
+     "detail": "PT-30882253: $825.00"
+    },
+    {
+     "at": "2026-11-23 17:24:43",
+     "actor": "coder.lee",
+     "action": "coding.decision",
+     "detail": "PT-30882253: Accepted ICD:E11.42, ICD:E11.65, ICD:I10, ICD:E78.5, CPT:83036, CPT:99213, CPT:80048, CPT:80061"
+    },
+    {
+     "at": "2026-11-23 17:24:40",
+     "actor": "dr.carter",
+     "action": "note.sign",
+     "detail": "PT-30882253 William Young"
+    },
+    {
+     "at": "2026-11-23 17:24:39",
+     "actor": "dr.carter",
+     "action": "consultation.create",
+     "detail": "PT-30882253 William Young"
+    },
+    {
+     "at": "2026-11-23 17:24:39",
+     "actor": "dr.carter",
+     "action": "work.assign",
+     "detail": "PT-30882253: None \u2192 dr.carter"
+    },
+    {
+     "at": "2026-11-23 17:24:29",
+     "actor": "rcm.patel",
+     "action": "user.password",
+     "detail": "rcm.patel"
+    },
+    {
+     "at": "2026-11-23 17:24:29",
+     "actor": "rcm.patel",
+     "action": "auth.sign_in",
+     "detail": ""
+    },
+    {
+     "at": "2026-11-23 17:24:29",
+     "actor": "admin",
+     "action": "user.create",
+     "detail": "rcm.patel (RCM Analyst)"
+    },
+    {
+     "at": "2026-11-23 17:24:29",
+     "actor": "coder.lee",
+     "action": "user.password",
+     "detail": "coder.lee"
+    },
+    {
+     "at": "2026-11-23 17:24:28",
+     "actor": "coder.lee",
+     "action": "auth.sign_in",
+     "detail": ""
+    },
+    {
+     "at": "2026-11-23 17:24:28",
+     "actor": "admin",
+     "action": "user.create",
+     "detail": "coder.lee (Coding Specialist)"
+    },
+    {
+     "at": "2026-11-23 17:24:28",
+     "actor": "dr.carter",
+     "action": "user.password",
+     "detail": "dr.carter"
+    },
+    {
+     "at": "2026-11-23 17:24:27",
+     "actor": "dr.carter",
+     "action": "auth.sign_in",
+     "detail": ""
+    },
+    {
+     "at": "2026-11-23 17:24:27",
+     "actor": "admin",
+     "action": "user.create",
+     "detail": "dr.carter (Clinical Reviewer)"
+    },
+    {
+     "at": "2026-11-23 17:24:27",
+     "actor": "bootstrap",
+     "action": "user.create",
+     "detail": "admin (Super Admin)"
+    }
+   ]
+  },
+  "/api/patients?q=&limit=12": {
+   "patients": [
+    {
+     "patient_id": "P100001",
+     "name": "Olivia Johnson",
+     "mrn": "MRN500001",
+     "dob": "1940-01-01T00:00:00",
+     "sex": "Female"
+    },
+    {
+     "patient_id": "P100002",
+     "name": "Liam Williams",
+     "mrn": "MRN500002",
+     "dob": "1947-06-12T00:00:00",
+     "sex": "Male"
+    },
+    {
+     "patient_id": "P100003",
+     "name": "Emma Brown",
+     "mrn": "MRN500003",
+     "dob": "1954-11-23T00:00:00",
+     "sex": "Female"
+    },
+    {
+     "patient_id": "P100004",
+     "name": "Noah Jones",
+     "mrn": "MRN500004",
+     "dob": "1961-04-07T00:00:00",
+     "sex": "Male"
+    },
+    {
+     "patient_id": "P100005",
+     "name": "Ava Garcia",
+     "mrn": "MRN500005",
+     "dob": "1968-09-18T00:00:00",
+     "sex": "Female"
+    },
+    {
+     "patient_id": "P100006",
+     "name": "Oliver Miller",
+     "mrn": "MRN500006",
+     "dob": "1975-02-02T00:00:00",
+     "sex": "Male"
+    },
+    {
+     "patient_id": "P100007",
+     "name": "Sophia Davis",
+     "mrn": "MRN500007",
+     "dob": "1982-07-13T00:00:00",
+     "sex": "Female"
+    },
+    {
+     "patient_id": "P100008",
+     "name": "Elijah Rodriguez",
+     "mrn": "MRN500008",
+     "dob": "1989-12-24T00:00:00",
+     "sex": "Male"
+    },
+    {
+     "patient_id": "P100009",
+     "name": "Isabella Martinez",
+     "mrn": "MRN500009",
+     "dob": "1996-05-08T00:00:00",
+     "sex": "Female"
+    },
+    {
+     "patient_id": "P100010",
+     "name": "James Hernandez",
+     "mrn": "MRN500010",
+     "dob": "2003-10-19T00:00:00",
+     "sex": "Male"
+    },
+    {
+     "patient_id": "P100011",
+     "name": "Mia Lopez",
+     "mrn": "MRN500011",
+     "dob": "1944-03-03T00:00:00",
+     "sex": "Female"
+    },
+    {
+     "patient_id": "P100012",
+     "name": "William Gonzalez",
+     "mrn": "MRN500012",
+     "dob": "1951-08-14T00:00:00",
+     "sex": "Male"
+    }
+   ]
+  },
+  "/api/patients/P100031/context": {
+   "patient": {
+    "Patient_ID": "P100031",
+    "MRN": "MRN500031",
+    "First_Name": "William",
+    "Last_Name": "Young",
+    "Legal_Name": "William Young",
+    "DOB": "1952-07-07T00:00:00",
+    "Age": "=DATEDIF(F32,TODAY(),\"Y\")",
+    "Sex_at_Birth": "Female",
+    "Pronouns": "she/her",
+    "Marital_Status": "Divorced",
+    "Race": "Asian",
+    "Ethnicity": "Not Hispanic or Latino",
+    "Preferred_Language": "English",
+    "Secondary_Language": "English",
+    "PCP": "Emily Carter, MD",
+    "Record_Status": "Active",
+    "Height_cm": 164,
+    "Weight_kg": 91,
+    "BMI": "=IFERROR(R32/((Q32/100)^2),\"\")",
+    "City": "Miami",
+    "State": "FL",
+    "ZIP": "33101",
+    "Country": "United States",
+    "Street_Address": "132 Main Street",
+    "Mobile": "(555) 232-1032",
+    "Email": "william.young@example.test"
+   },
+   "context": {
+    "problems": "Essential hypertension \u00b7 Type 2 diabetes mellitus without complications",
+    "medications": "Lisinopril 10 mg tablet",
+    "allergies": "Penicillin",
+    "vitals": "BP 152/80 \u00b7 T 97.6\u00b0F \u00b7 SpO\u2082 98% \u00b7 RR 14 \u00b7 HR 72",
+    "labs": "HbA1c 5.1% \u00b7 25 Aug 2026 \u00b7 Glucose 114 mg/dL (High)"
+   },
+   "coverage": {
+    "payer": "Care Gap Health",
+    "plan": "PPO",
+    "status": "Active"
+   },
+   "allergies": [
+    "Penicillin"
+   ]
+  },
+  "/api/kb/search?q=statin": {
+   "results": [
+    {
+     "text": ". Aspirin is not recom mended for primary prevention in those with a low cardiovascular risk (1.7 mmol/L [150 mg/dL]) or low HDL cholesterol (5.7 mmol/L (500 mg/dL) on a statin, icosapent or fenofibrate can be considered to reduce ASCVD risk. The addition of fenofibrate may require reduction in statin dose to minimize the risk of myopathy. In terms of pharmacologic therapy directed at LDL, the ADA rec ommends the following in addition to lifestyle: (1) all patients with diabetes and ASCVD should receive high-intensity statin therapy (atorvastatin 40\u201380 mg or rosuvastatin 20\u201340 mg) with a goal of >50% reduction in LDL and a cholesterol goal of 75 years on a statin, continue statin or, if not on a statin, consider starting moderate-intensity statin therapy after discussion with the patient; and (6) in patients aged 20\u201339 years with additional risk factors, consider moderate-intensity statin therapy. If a patient with ASCVD cannot tolerate a statin, consider PCSK9 inhibitor therapy (monoclonal antibody or inclisiran, a small interfering RNA), or bempedoic acid. Statin therapy, when combined with fibrate or nia cin, for reduction of LDL does not provide additional benefit",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 967,
+     "score": 0.699
+    },
+    {
+     "text": ". The magnitude of LDL-C lowering associated with statin treatment (~30\u201355%) varies by statin and among individuals, but once a patient is on a statin, the doubling of the statin dose produces a ~6% further reduction in the level of plasma LDL-C. An extensive body of randomized clinical trials has clearly established that statin therapy significantly reduces major cardiovascular events (and in some cases total mortality) in both primary and secondary prevention settings. The seven statins currently available differ in their LDL-C\u2013reducing potency (Table 419-4). Current recommendations are to use high-intensity statin therapy in patients with ASCVD or deemed at high risk of ASCVD. Statins also modestly reduce plasma TGs in a dose-dependent fash ion roughly proportional to their LDL-C\u2013lowering effects. Statins, taken in tablet form once a day, are remarkably safe and well tolerated. The most important side effect associated with statin therapy is muscle pain, or myalgia, which occurs in 3\u20135% of patients, some of whom are unable to tolerate any statin",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 1063,
+     "score": 0.684
+    },
+    {
+     "text": ". The mean reduction in plasma LDL-C on ezetimibe (10 mg) is 18%, and the effect is additive when used in combination with a statin. Effects on TG and HDL-C levels are negligible. Ezetimibe added to a statin has been shown to sig nificantly reduce major cardiovascular events compared with statin alone. It is generally considered the second-line option for adding to a statin in order to achieve further LDL-C reduction. Ezetimibe is very safe and well-tolerated. When used in combination with a statin, monitoring of liver transaminases is recommended. The only roles for ezetimibe in monotherapy are in patients who do not toler ate statins and in some patients with sitosterolemia. PCSK9 Inhibitors Circulating PCSK9 targets the LDL receptor for lysosomal degradation, thus reducing its recycling and abundance at the surface of the hepatocyte. Genetic loss of function of PCSK9 results in low levels of LDL-C and protection from CAD. Antibod ies to PCSK9 (Table 419-4) sequester it and functionally increase the number of LDL receptors available to remove LDL from the blood. They are highly effective in lowering LDL-C, with an ~60% reduction in LDL-C",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 1066,
+     "score": 0.445
+    },
+    {
+     "text": ". They are highly effective in lowering LDL-C, with an ~60% reduction in LDL-C. They also reduce plasma levels of Lp(a) mod estly. Both PCSK9 antibodies have been shown to significantly reduce cardiovascular events when added to a statin in patients with existing CAD. These antibodies are administered subcutane ously every 2 weeks. They are generally well tolerated, with a side effect being injection site reactions. They are generally indicated as second-line (added to statin) or third-line (added to statin plus ezetimibe) therapy in patients with FH or ASCVD in whom LDL-C is not reduced to acceptable levels with a statin (with or without ezetimibe) alone. An alternative approach to silencing PCSK9, inclisiran, is a therapeutic siRNA molecule that targets the PCSK9 mRNA in the liver. In contrast to the antibodies, it is administered subcutaneously every 6 months. It is effective in reducing LDL-C by ~60% and appears to be well tolerated and safe; cardiovascular outcomes trials are ongoing",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 1067,
+     "score": 0.439
+    },
+    {
+     "text": ". The 2019 American College of Cardiology (ACC)/ American Health Association (AHA) Cholesterol Guidelines have no specific recommendations for patients with metabolic syndrome; however, they recommend that patients aged 20\u201375 years with LDL cholesterol levels \u2265190 mg/dL should use a high-intensity statin (e.g., atorvastatin 40\u201380 mg or rosuvastatin 20\u201340 mg daily) and those with type 2 diabetes aged 40\u201375 years should use a moderate intensity statin and, if or when risk estimate is high, a high-intensity statin. For patients with metabolic syndrome but without diabe tes, the 10-year ASCVD risk estimator should be employed, and patients with a risk \u22657.5% and \u226420% or persons aged 20\u201359 with elevated lifetime risk should have a discussion with their provider about initiating statin therapy for primary prevention of ASCVD. A coronary calcium score may help in making this decision. Diets restricted in saturated fats (300 mg/dL. Side effects include gastrointestinal symptoms (palatability, bloating, belching, constipation, anal irritation)",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 1101,
+     "score": 0.378
+    },
+    {
+     "text": ". It is effective in reducing LDL-C by ~60% and appears to be well tolerated and safe; cardiovascular outcomes trials are ongoing. ATP Citrate Lyase Inhibitor Bempedoic acid is a first-in-class competitive inhibitor of ATP citrate lyase (ACL), which acts on mitochondrial-derived citrate to generate production of acetyl CoA, which is subsequently used for cholesterol synthesis. Thus, it reduces cholesterol synthesis through a different mechanism than statins, ultimately upregulating the hepatic LDL receptor. Bempe doic acid is a prodrug that requires activation by very-long-chain acyl-CoA synthetase-1 (ASCVL1), which is not expressed in skel etal muscle, potentially explaining why it has less association with myalgias than statins; indeed, it has been shown to be relatively well tolerated in patients with statin-induced myalgias. In phase 3 trials, bempedoic acid 180 mg daily reduced LDL-C by ~18% when added to a statin and by ~23% as monotherapy. In a large cardiovascular outcomes trial in statin-intolerant patients, bempedoic acid 180 mg daily was shown to significantly reduce (by 13%) a four-component composite of major adverse cardiovascular events",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 1068,
+     "score": 0.311
+    },
+    {
+     "text": ". LDL apheresis is indicated for patients on maximally tolerated combination drug therapy (including a PCSK9 inhibitor) who have CHD and a plasma LDL-C level >200 mg/dL or no CHD and a plasma LDL-C level >300 mg/dL; LDL apher esis could be considered in high-risk patients who have an LDL-C >160 mg/dL on maximal therapy. \u25a0FURTHER READING Cholesterol Treatment Trialists\u2019 (CTT) Collaboration: Effects of statin therapy on diagnoses of new-onset diabetes and worsening glycaemia in large-scale randomised blinded statin trials: An indi vidual participant data meta-analysis. Lancet Diabetes Endocrinol 12:306, 2024. Hernandez P et al: Clinical management of hypertriglyceridemia in the prevention of cardiovascular disease and pancreatitis. Curr Ath eroscler Reports 23:72, 2021. Klarin D, Natarajan P: Clinical utility of polygenic risk scores for coronary artery disease. Nat Rev Cardiol 19:291, 2022. Loh WJ, Watts GF: The inherited hypercholesterolemias. Endocrinol Metab Clin North Am 51:511, 2022. Mangione CM et al: Statin use for the primary prevention of cardio vascular disease in adults: US Preventive Services Task Force recom mendation statement. JAMA 328:746, 2022",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 1072,
+     "score": 0.269
+    },
+    {
+     "text": ". In the absence of ASCVD, patients with FH must be treated to reduce the very high lifetime risk of ASCVD, and treatment should be initiated as early as possible, ideally during childhood. Otherwise, the decision to initiate LDL-lowering drug therapy is generally determined by the level of cardiovascular risk. For patients >40 years old without clinical CVD, the ASCVD pooled cohort risk calculator can be used to determine the 10-year absolute risk for CVD, and current guidelines suggest that a 10-year risk >7.5% merits consideration of statin therapy regardless of plasma LDL-C level. For younger patients, the assessment of lifetime risk of CVD may help inform the decision to start a statin, as well as a care ful assessment of family history of ASCVD. In patients for whom the decision to start a statin is uncertain due to borderline ASCVD risk and/or borderline LDL-C levels, additional risk stratification might be considered. Blood tests that predict ASCVD risk beyond traditional risk factors include apoB, Lp(a), and high-sensitivity C-reactive protein (hs-CRP)",
+     "source": "knowledge_base_harrison.docx",
+     "chunk": 1061,
+     "score": 0.254
+    }
+   ]
+  }
+ }
+}

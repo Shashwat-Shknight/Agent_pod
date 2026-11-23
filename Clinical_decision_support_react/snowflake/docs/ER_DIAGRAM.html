@@ -1,0 +1,595 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NuuCare Data Model</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one reading column for prose; the diagram and table catalogue break out to full width. */
+:root {
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --frame: #eaeff3;
+  --head: #dde6ec;
+  --line: #b9c6cf;
+  --fg: #16232c;
+  --muted: #5b6b76;
+  --accent: #0b6e8a;
+  --accent-soft: #d8eef4;
+  --edge: #50626e;
+  --warn: #9a5b00;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f161b; --surface: #17222a; --frame: #131d24; --head: #1f2e38; --line: #34505f;
+    --fg: #e3ebf0; --muted: #93a6b2; --accent: #4cc3e0; --accent-soft: #123441; --edge: #8fa4b1; --warn: #f0b45a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f161b; --surface: #17222a; --frame: #131d24; --head: #1f2e38; --line: #34505f;
+  --fg: #e3ebf0; --muted: #93a6b2; --accent: #4cc3e0; --accent-soft: #123441; --edge: #8fa4b1; --warn: #f0b45a;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 44px; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.3rem; font-weight: 600; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+header { display: grid; gap: 12px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.fact { font-family: var(--font-mono); font-size: 0.8rem; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); }
+.fact b { color: var(--fg); font-weight: 600; }
+section { display: grid; gap: 16px; }
+
+/* ER diagram */
+figure { margin: 0; display: grid; gap: 10px; }
+.scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+svg.er { display: block; width: 100%; min-width: 980px; height: auto; padding: 8px; box-sizing: border-box; }
+figcaption { color: var(--muted); font-size: 0.9rem; max-width: 80ch; }
+.er .frame { fill: var(--frame); stroke: var(--line); stroke-width: 1; }
+.er .frame-hub { stroke: var(--accent); stroke-width: 1.6; }
+.er .schema { fill: var(--accent); font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; }
+.er .tbl-box { fill: var(--surface); stroke: var(--line); }
+.er .tbl-head { fill: var(--head); }
+.er .tbl-rule { stroke: var(--line); }
+.er .tbl-name { fill: var(--fg); font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+.er .col { fill: var(--fg); font-family: var(--font-mono); font-size: 11px; }
+.er .col-key { font-weight: 600; }
+.er .typ { fill: var(--muted); font-family: var(--font-mono); font-size: 10px; }
+.er .key { fill: var(--accent); font-family: var(--font-mono); font-size: 9px; font-weight: 600; }
+.er .edge { fill: none; stroke: var(--edge); stroke-width: 1.4; }
+.er .edge.logical { stroke-dasharray: 5 4; }
+.er .arrowhead { fill: var(--edge); }
+.er .elabel { fill: var(--muted); font-family: var(--font-sans); font-size: 11px; font-weight: 500;
+  paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.er .legend { fill: var(--fg); font-family: var(--font-sans); font-size: 11.5px; }
+
+/* write path */
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: step; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+ol.steps li { counter-increment: step; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) minmax(0, 1.25fr); gap: 4px 16px; padding: 14px 18px; border-top: 1px solid var(--line); align-items: start; }
+ol.steps li:first-child { border-top: 0; }
+ol.steps li::before { content: counter(step); font-family: var(--font-mono); font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; width: 1.8rem; height: 1.8rem; display: grid; place-items: center; font-size: 0.85rem; }
+.step-what b { display: block; font-weight: 600; }
+.step-what span { color: var(--muted); font-size: 0.9rem; }
+.writes { display: flex; flex-wrap: wrap; gap: 6px; align-content: start; }
+.tag { font-family: var(--font-mono); font-size: 0.76rem; padding: 3px 8px; border-radius: 6px; background: var(--frame); border: 1px solid var(--line); white-space: nowrap; }
+.tag.new { border-color: var(--accent); color: var(--accent); }
+.always { padding: 12px 18px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); font-size: 0.92rem; }
+@media (max-width: 720px) { ol.steps li { grid-template-columns: 2.4rem minmax(0, 1fr); } .writes { grid-column: 2; } }
+
+/* catalogue */
+.schemas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 16px; }
+.schema-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.schema-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.schema-card h3 { font-family: var(--font-mono); font-size: 0.95rem; color: var(--accent); }
+.schema-card > p { color: var(--muted); font-size: 0.9rem; }
+details { border-top: 1px solid var(--line); padding-top: 8px; }
+summary { cursor: pointer; display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; list-style: none; padding: 2px 0; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "▸"; color: var(--muted); margin-right: 6px; transition: transform .15s; display: inline-block; }
+details[open] summary::before { transform: rotate(90deg); }
+summary .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+summary .rows { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; white-space: nowrap; }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.purpose { color: var(--muted); font-size: 0.86rem; margin: 6px 0; }
+table.cols { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.78rem; }
+table.cols td { padding: 3px 0; border-bottom: 1px solid var(--frame); vertical-align: top; }
+table.cols td:last-child { text-align: right; color: var(--muted); white-space: nowrap; padding-left: 8px; }
+table.cols .pk { color: var(--accent); font-weight: 600; }
+
+/* decisions */
+.decisions { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.decision { display: grid; gap: 6px; align-content: start; padding-top: 12px; border-top: 2px solid var(--accent); }
+.decision p { color: var(--muted); font-size: 0.92rem; }
+.views { display: grid; gap: 6px; }
+.views div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 12px; font-size: 0.9rem; }
+.views b { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); font-weight: 600; padding-top: 2px; }
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { summary::before { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Snowflake · NUUCARE_DB</span>
+    <h1>NuuCare Data Model</h1>
+    <p class="prose">Everything the Encounter Pod saves lives in one Snowflake database. A consultation becomes one row in
+      <code>CLINICAL.ENCOUNTERS</code>, and every agent's output hangs off that row: the transcript, the SOAP draft and
+      decision support, the codes, the signed note versions, the bill, its PDF and the claim. Nothing is kept in local
+      files, and the record survives after the patient leaves.</p>
+    <div class="facts">
+      <span class="fact"><b>7</b> schemas</span>
+      <span class="fact"><b>21</b> tables</span>
+      <span class="fact"><b>17</b> views</span>
+      <span class="fact"><b>1</b> transactional procedure</span>
+      <span class="fact">migrations <b>V001–V003</b></span>
+      <span class="fact">ICD-10-CM <b>FY2027</b> · HCPCS <b>2026-11-19</b></span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Entity-relationship diagram</h2>
+    <figure>
+      <div class="scroll"><svg class="er" viewBox="0 0 1320 920" role="img" aria-label="Entity-relationship diagram of the NuuCare Snowflake database: CLINICAL.ENCOUNTERS is the hub, with history, transcripts, AI outputs, codes and SOAP note versions; billing, security, EHR and the official reference code sets connect to it by stored IDs.">
+<defs><marker id="er-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<rect class="frame" x="20" y="40" width="230" height="540" rx="10"/>
+<text class="schema" x="34" y="62">SECURITY</text>
+<rect class="frame frame-hub" x="290" y="40" width="470" height="650" rx="10"/>
+<text class="schema" x="304" y="62">CLINICAL</text>
+<rect class="frame" x="800" y="40" width="230" height="530" rx="10"/>
+<text class="schema" x="814" y="62">BILLING</text>
+<rect class="frame" x="1070" y="40" width="230" height="670" rx="10"/>
+<text class="schema" x="1084" y="62">REFERENCE</text>
+<rect class="frame" x="290" y="740" width="470" height="160" rx="10"/>
+<text class="schema" x="304" y="762">EHR</text>
+<rect class="frame" x="800" y="740" width="230" height="160" rx="10"/>
+<text class="schema" x="814" y="762">VBC</text>
+<rect class="frame" x="1070" y="740" width="230" height="160" rx="10"/>
+<text class="schema" x="1084" y="762">META</text>
+<path class="edge" d="M480,233 V262 H410 V288" marker-end="url(#er-arrow)"/>
+<path class="edge" d="M570,233 V262 H640 V288" marker-end="url(#er-arrow)"/>
+<path class="edge" d="M425,200 H298 V472 H303" marker-end="url(#er-arrow)"/>
+<path class="edge" d="M625,200 H752 V489 H747" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M525,233 V604 H517" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M625,120 H813" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M915,182 V238" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M625,160 H780 V480 H813" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M745,530 H765 V600 H1060 V316 H1083" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M1185,182 V238" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M1285,490 H1295 V131 H1287" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M1085,630 H1077 V360 H1083" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M135,182 V238" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M235,160 H262 V400 H237" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M235,110 H423" marker-end="url(#er-arrow)"/>
+<path class="edge logical" d="M305,820 H275 V140 H423" marker-end="url(#er-arrow)"/>
+<g class="tbl" data-table="SECURITY.APP_USERS">
+<rect class="tbl-box" x="35" y="80" width="200" height="102" rx="4"/>
+<rect class="tbl-head" x="36" y="81" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="35" y1="106" x2="235" y2="106"/>
+<text class="tbl-name" x="45" y="97">APP_USERS</text>
+<text class="key" x="43" y="119">PK</text>
+<text class="col col-key" x="79" y="119">USERNAME</text>
+<text class="typ" x="227" y="119" text-anchor="end">text</text>
+<text class="col" x="79" y="136">ROLE</text>
+<text class="typ" x="227" y="136" text-anchor="end">text</text>
+<text class="col" x="79" y="153">ACTIVE</text>
+<text class="typ" x="227" y="153" text-anchor="end">bool</text>
+<text class="col" x="79" y="170">USER_JSON</text>
+<text class="typ" x="227" y="170" text-anchor="end">variant</text>
+</g>
+<g class="tbl" data-table="SECURITY.ROLE_PERMISSIONS">
+<rect class="tbl-box" x="35" y="240" width="200" height="68" rx="4"/>
+<rect class="tbl-head" x="36" y="241" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="35" y1="266" x2="235" y2="266"/>
+<text class="tbl-name" x="45" y="257">ROLE_PERMISSIONS</text>
+<text class="key" x="43" y="279">PK</text>
+<text class="col col-key" x="79" y="279">ROLE</text>
+<text class="typ" x="227" y="279" text-anchor="end">text</text>
+<text class="col" x="79" y="296">PERMISSIONS</text>
+<text class="typ" x="227" y="296" text-anchor="end">variant</text>
+</g>
+<g class="tbl" data-table="SECURITY.AUDIT_LOG">
+<rect class="tbl-box" x="35" y="350" width="200" height="102" rx="4"/>
+<rect class="tbl-head" x="36" y="351" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="35" y1="376" x2="235" y2="376"/>
+<text class="tbl-name" x="45" y="367">AUDIT_LOG</text>
+<text class="key" x="43" y="389">PK</text>
+<text class="col col-key" x="79" y="389">EVENT_ID</text>
+<text class="typ" x="227" y="389" text-anchor="end">text</text>
+<text class="col" x="79" y="406">ACTOR</text>
+<text class="typ" x="227" y="406" text-anchor="end">text</text>
+<text class="col" x="79" y="423">ACTION</text>
+<text class="typ" x="227" y="423" text-anchor="end">text</text>
+<text class="col" x="79" y="440">DETAIL</text>
+<text class="typ" x="227" y="440" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="SECURITY.STORE_SETTINGS">
+<rect class="tbl-box" x="35" y="490" width="200" height="68" rx="4"/>
+<rect class="tbl-head" x="36" y="491" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="35" y1="516" x2="235" y2="516"/>
+<text class="tbl-name" x="45" y="507">STORE_SETTINGS</text>
+<text class="key" x="43" y="529">PK</text>
+<text class="col col-key" x="79" y="529">SETTING_KEY</text>
+<text class="typ" x="227" y="529" text-anchor="end">text</text>
+<text class="col" x="79" y="546">SETTING_VALUE</text>
+<text class="typ" x="227" y="546" text-anchor="end">variant</text>
+</g>
+<g class="tbl" data-table="CLINICAL.ENCOUNTERS">
+<rect class="tbl-box" x="425" y="80" width="200" height="153" rx="4"/>
+<rect class="tbl-head" x="426" y="81" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="425" y1="106" x2="625" y2="106"/>
+<text class="tbl-name" x="435" y="97">ENCOUNTERS</text>
+<text class="key" x="433" y="119">PK</text>
+<text class="col col-key" x="469" y="119">ENCOUNTER_ID</text>
+<text class="typ" x="617" y="119" text-anchor="end">text</text>
+<text class="col" x="469" y="136">PATIENT_ID</text>
+<text class="typ" x="617" y="136" text-anchor="end">text</text>
+<text class="col" x="469" y="153">ASSIGNED_TO</text>
+<text class="typ" x="617" y="153" text-anchor="end">text</text>
+<text class="col" x="469" y="170">STATUS</text>
+<text class="typ" x="617" y="170" text-anchor="end">text</text>
+<text class="col" x="469" y="187">RECORD_JSON</text>
+<text class="typ" x="617" y="187" text-anchor="end">variant</text>
+<text class="col" x="469" y="204">RECORD_HASH</text>
+<text class="typ" x="617" y="204" text-anchor="end">text</text>
+<text class="col" x="469" y="221">ROW_VERSION</text>
+<text class="typ" x="617" y="221" text-anchor="end">number</text>
+</g>
+<g class="tbl" data-table="CLINICAL.ENCOUNTER_HISTORY">
+<rect class="tbl-box" x="305" y="290" width="210" height="102" rx="4"/>
+<rect class="tbl-head" x="306" y="291" width="208" height="25" rx="3"/>
+<line class="tbl-rule" x1="305" y1="316" x2="515" y2="316"/>
+<text class="tbl-name" x="315" y="307">ENCOUNTER_HISTORY</text>
+<text class="key" x="313" y="329">PK FK</text>
+<text class="col col-key" x="349" y="329">ENCOUNTER_ID</text>
+<text class="typ" x="507" y="329" text-anchor="end">text</text>
+<text class="key" x="313" y="346">PK</text>
+<text class="col col-key" x="349" y="346">ROW_VERSION</text>
+<text class="typ" x="507" y="346" text-anchor="end">number</text>
+<text class="col" x="349" y="363">RECORD_JSON</text>
+<text class="typ" x="507" y="363" text-anchor="end">variant</text>
+<text class="col" x="349" y="380">CHANGED_BY</text>
+<text class="typ" x="507" y="380" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="CLINICAL.ENCOUNTER_AI_OUTPUTS">
+<rect class="tbl-box" x="535" y="290" width="210" height="102" rx="4"/>
+<rect class="tbl-head" x="536" y="291" width="208" height="25" rx="3"/>
+<line class="tbl-rule" x1="535" y1="316" x2="745" y2="316"/>
+<text class="tbl-name" x="545" y="307">ENCOUNTER_AI_OUTPUTS</text>
+<text class="key" x="543" y="329">PK FK</text>
+<text class="col col-key" x="579" y="329">ENCOUNTER_ID</text>
+<text class="typ" x="737" y="329" text-anchor="end">text</text>
+<text class="col" x="579" y="346">SOAP_DRAFT</text>
+<text class="typ" x="737" y="346" text-anchor="end">text</text>
+<text class="col" x="579" y="363">RETRIEVED_GUIDELINES</text>
+<text class="typ" x="737" y="363" text-anchor="end">text</text>
+<text class="col" x="579" y="380">RECOMMENDATIONS</text>
+<text class="typ" x="737" y="380" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="CLINICAL.ENCOUNTER_TRANSCRIPTS">
+<rect class="tbl-box" x="305" y="430" width="210" height="85" rx="4"/>
+<rect class="tbl-head" x="306" y="431" width="208" height="25" rx="3"/>
+<line class="tbl-rule" x1="305" y1="456" x2="515" y2="456"/>
+<text class="tbl-name" x="315" y="447">ENCOUNTER_TRANSCRIPTS</text>
+<text class="key" x="313" y="469">PK FK</text>
+<text class="col col-key" x="349" y="469">ENCOUNTER_ID</text>
+<text class="typ" x="507" y="469" text-anchor="end">text</text>
+<text class="col" x="349" y="486">TRANSCRIPT</text>
+<text class="typ" x="507" y="486" text-anchor="end">text</text>
+<text class="col" x="349" y="503">TRANSCRIPT_DATA</text>
+<text class="typ" x="507" y="503" text-anchor="end">variant</text>
+</g>
+<g class="tbl" data-table="CLINICAL.ENCOUNTER_CODES">
+<rect class="tbl-box" x="535" y="430" width="210" height="119" rx="4"/>
+<rect class="tbl-head" x="536" y="431" width="208" height="25" rx="3"/>
+<line class="tbl-rule" x1="535" y1="456" x2="745" y2="456"/>
+<text class="tbl-name" x="545" y="447">ENCOUNTER_CODES</text>
+<text class="key" x="543" y="469">PK FK</text>
+<text class="col col-key" x="579" y="469">ENCOUNTER_ID</text>
+<text class="typ" x="737" y="469" text-anchor="end">text</text>
+<text class="key" x="543" y="486">PK</text>
+<text class="col col-key" x="579" y="486">CODE_SYSTEM</text>
+<text class="typ" x="737" y="486" text-anchor="end">text</text>
+<text class="key" x="543" y="503">PK</text>
+<text class="col col-key" x="579" y="503">CODE</text>
+<text class="typ" x="737" y="503" text-anchor="end">text</text>
+<text class="col" x="579" y="520">DECISION_STATUS</text>
+<text class="typ" x="737" y="520" text-anchor="end">text</text>
+<text class="col" x="579" y="537">DECIDED_BY</text>
+<text class="typ" x="737" y="537" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="CLINICAL.SOAP_NOTES">
+<rect class="tbl-box" x="305" y="545" width="210" height="119" rx="4"/>
+<rect class="tbl-head" x="306" y="546" width="208" height="25" rx="3"/>
+<line class="tbl-rule" x1="305" y1="571" x2="515" y2="571"/>
+<text class="tbl-name" x="315" y="562">SOAP_NOTES</text>
+<text class="key" x="313" y="584">PK</text>
+<text class="col col-key" x="349" y="584">ENCOUNTER_ID</text>
+<text class="typ" x="507" y="584" text-anchor="end">text</text>
+<text class="key" x="313" y="601">PK</text>
+<text class="col col-key" x="349" y="601">VERSION</text>
+<text class="typ" x="507" y="601" text-anchor="end">number</text>
+<text class="col" x="349" y="618">STATUS</text>
+<text class="typ" x="507" y="618" text-anchor="end">text</text>
+<text class="col" x="349" y="635">SOAP_NOTE</text>
+<text class="typ" x="507" y="635" text-anchor="end">text</text>
+<text class="col" x="349" y="652">ACTOR</text>
+<text class="typ" x="507" y="652" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="BILLING.GENERATED_BILLS">
+<rect class="tbl-box" x="815" y="80" width="200" height="102" rx="4"/>
+<rect class="tbl-head" x="816" y="81" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="815" y1="106" x2="1015" y2="106"/>
+<text class="tbl-name" x="825" y="97">GENERATED_BILLS</text>
+<text class="key" x="823" y="119">PK</text>
+<text class="col col-key" x="859" y="119">BILL_KEY</text>
+<text class="typ" x="1007" y="119" text-anchor="end">text</text>
+<text class="col" x="859" y="136">ENCOUNTER_ID</text>
+<text class="typ" x="1007" y="136" text-anchor="end">text</text>
+<text class="col" x="859" y="153">GROSS_TOTAL</text>
+<text class="typ" x="1007" y="153" text-anchor="end">number</text>
+<text class="col" x="859" y="170">BILL_JSON</text>
+<text class="typ" x="1007" y="170" text-anchor="end">variant</text>
+</g>
+<g class="tbl" data-table="BILLING.CLAIMS">
+<rect class="tbl-box" x="815" y="240" width="200" height="136" rx="4"/>
+<rect class="tbl-head" x="816" y="241" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="815" y1="266" x2="1015" y2="266"/>
+<text class="tbl-name" x="825" y="257">CLAIMS</text>
+<text class="key" x="823" y="279">PK</text>
+<text class="col col-key" x="859" y="279">CLAIM_ID</text>
+<text class="typ" x="1007" y="279" text-anchor="end">text</text>
+<text class="col" x="859" y="296">ENCOUNTER_ID</text>
+<text class="typ" x="1007" y="296" text-anchor="end">text</text>
+<text class="col" x="859" y="313">CLAIM_TYPE</text>
+<text class="typ" x="1007" y="313" text-anchor="end">text</text>
+<text class="col" x="859" y="330">CLAIM_JSON</text>
+<text class="typ" x="1007" y="330" text-anchor="end">variant</text>
+<text class="col" x="859" y="347">VALIDATION_REPORT</text>
+<text class="typ" x="1007" y="347" text-anchor="end">variant</text>
+<text class="col" x="859" y="364">IS_DELETED</text>
+<text class="typ" x="1007" y="364" text-anchor="end">bool</text>
+</g>
+<g class="tbl" data-table="BILLING.BILL_DOCUMENTS">
+<rect class="tbl-box" x="815" y="420" width="200" height="119" rx="4"/>
+<rect class="tbl-head" x="816" y="421" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="815" y1="446" x2="1015" y2="446"/>
+<text class="tbl-name" x="825" y="437">BILL_DOCUMENTS</text>
+<text class="key" x="823" y="459">PK</text>
+<text class="col col-key" x="859" y="459">DOCUMENT_ID</text>
+<text class="typ" x="1007" y="459" text-anchor="end">text</text>
+<text class="col" x="859" y="476">ENCOUNTER_ID</text>
+<text class="typ" x="1007" y="476" text-anchor="end">text</text>
+<text class="col" x="859" y="493">DOCUMENT_TYPE</text>
+<text class="typ" x="1007" y="493" text-anchor="end">text</text>
+<text class="col" x="859" y="510">SHA256</text>
+<text class="typ" x="1007" y="510" text-anchor="end">text</text>
+<text class="col" x="859" y="527">CONTENT</text>
+<text class="typ" x="1007" y="527" text-anchor="end">binary</text>
+</g>
+<g class="tbl" data-table="REFERENCE.CODE_SET_RELEASES">
+<rect class="tbl-box" x="1085" y="80" width="200" height="102" rx="4"/>
+<rect class="tbl-head" x="1086" y="81" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="1085" y1="106" x2="1285" y2="106"/>
+<text class="tbl-name" x="1095" y="97">CODE_SET_RELEASES</text>
+<text class="key" x="1093" y="119">PK</text>
+<text class="col col-key" x="1129" y="119">CODE_SYSTEM</text>
+<text class="typ" x="1277" y="119" text-anchor="end">text</text>
+<text class="key" x="1093" y="136">PK</text>
+<text class="col col-key" x="1129" y="136">RELEASE_ID</text>
+<text class="typ" x="1277" y="136" text-anchor="end">text</text>
+<text class="col" x="1129" y="153">EFFECTIVE_FROM</text>
+<text class="typ" x="1277" y="153" text-anchor="end">date</text>
+<text class="col" x="1129" y="170">CHECKSUM</text>
+<text class="typ" x="1277" y="170" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="REFERENCE.CODES">
+<rect class="tbl-box" x="1085" y="240" width="200" height="153" rx="4"/>
+<rect class="tbl-head" x="1086" y="241" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="1085" y1="266" x2="1285" y2="266"/>
+<text class="tbl-name" x="1095" y="257">CODES</text>
+<text class="key" x="1093" y="279">PK</text>
+<text class="col col-key" x="1129" y="279">CODE_SYSTEM</text>
+<text class="typ" x="1277" y="279" text-anchor="end">text</text>
+<text class="key" x="1093" y="296">PK</text>
+<text class="col col-key" x="1129" y="296">CODE_RAW</text>
+<text class="typ" x="1277" y="296" text-anchor="end">text</text>
+<text class="key" x="1093" y="313">PK</text>
+<text class="col col-key" x="1129" y="313">VALID_FROM</text>
+<text class="typ" x="1277" y="313" text-anchor="end">date</text>
+<text class="col" x="1129" y="330">VALID_TO</text>
+<text class="typ" x="1277" y="330" text-anchor="end">date</text>
+<text class="col" x="1129" y="347">IS_BILLABLE</text>
+<text class="typ" x="1277" y="347" text-anchor="end">bool</text>
+<text class="col" x="1129" y="364">IS_LATEST</text>
+<text class="typ" x="1277" y="364" text-anchor="end">bool</text>
+<text class="col" x="1129" y="381">RELEASE_ID</text>
+<text class="typ" x="1277" y="381" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="REFERENCE.SYNC_RUNS">
+<rect class="tbl-box" x="1085" y="440" width="200" height="102" rx="4"/>
+<rect class="tbl-head" x="1086" y="441" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="1085" y1="466" x2="1285" y2="466"/>
+<text class="tbl-name" x="1095" y="457">SYNC_RUNS</text>
+<text class="key" x="1093" y="479">PK</text>
+<text class="col col-key" x="1129" y="479">RUN_ID</text>
+<text class="typ" x="1277" y="479" text-anchor="end">text</text>
+<text class="col" x="1129" y="496">CODE_SYSTEM</text>
+<text class="typ" x="1277" y="496" text-anchor="end">text</text>
+<text class="col" x="1129" y="513">STATUS</text>
+<text class="typ" x="1277" y="513" text-anchor="end">text</text>
+<text class="col" x="1129" y="530">RELEASE_ID</text>
+<text class="typ" x="1277" y="530" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="REFERENCE.CODES_STAGE">
+<rect class="tbl-box" x="1085" y="580" width="200" height="102" rx="4"/>
+<rect class="tbl-head" x="1086" y="581" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="1085" y1="606" x2="1285" y2="606"/>
+<text class="tbl-name" x="1095" y="597">CODES_STAGE</text>
+<text class="col" x="1129" y="619">RUN_ID</text>
+<text class="typ" x="1277" y="619" text-anchor="end">text</text>
+<text class="col" x="1129" y="636">CODE_SYSTEM</text>
+<text class="typ" x="1277" y="636" text-anchor="end">text</text>
+<text class="col" x="1129" y="653">CODE_RAW</text>
+<text class="typ" x="1277" y="653" text-anchor="end">text</text>
+<text class="col" x="1129" y="670">ROW_HASH</text>
+<text class="typ" x="1277" y="670" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="EHR.SHEETS">
+<rect class="tbl-box" x="305" y="780" width="210" height="102" rx="4"/>
+<rect class="tbl-head" x="306" y="781" width="208" height="25" rx="3"/>
+<line class="tbl-rule" x1="305" y1="806" x2="515" y2="806"/>
+<text class="tbl-name" x="315" y="797">SHEETS</text>
+<text class="key" x="313" y="819">PK</text>
+<text class="col col-key" x="349" y="819">SHEET_NAME</text>
+<text class="typ" x="507" y="819" text-anchor="end">text</text>
+<text class="col" x="349" y="836">HEADERS</text>
+<text class="typ" x="507" y="836" text-anchor="end">variant</text>
+<text class="col" x="349" y="853">RECORDS</text>
+<text class="typ" x="507" y="853" text-anchor="end">variant</text>
+<text class="col" x="349" y="870">CONTENT_HASH</text>
+<text class="typ" x="507" y="870" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="EHR.STORE_METADATA">
+<rect class="tbl-box" x="535" y="780" width="210" height="68" rx="4"/>
+<rect class="tbl-head" x="536" y="781" width="208" height="25" rx="3"/>
+<line class="tbl-rule" x1="535" y1="806" x2="745" y2="806"/>
+<text class="tbl-name" x="545" y="797">STORE_METADATA</text>
+<text class="key" x="543" y="819">PK</text>
+<text class="col col-key" x="579" y="819">STORE_KEY</text>
+<text class="typ" x="737" y="819" text-anchor="end">text</text>
+<text class="col" x="579" y="836">SOURCE_WORKBOOK</text>
+<text class="typ" x="737" y="836" text-anchor="end">text</text>
+</g>
+<g class="tbl" data-table="VBC.STATE_DOCUMENTS">
+<rect class="tbl-box" x="815" y="780" width="200" height="102" rx="4"/>
+<rect class="tbl-head" x="816" y="781" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="815" y1="806" x2="1015" y2="806"/>
+<text class="tbl-name" x="825" y="797">STATE_DOCUMENTS</text>
+<text class="key" x="823" y="819">PK</text>
+<text class="col col-key" x="859" y="819">DOC_KEY</text>
+<text class="typ" x="1007" y="819" text-anchor="end">text</text>
+<text class="col" x="859" y="836">REVISION</text>
+<text class="typ" x="1007" y="836" text-anchor="end">number</text>
+<text class="col" x="859" y="853">STATE_TEXT</text>
+<text class="typ" x="1007" y="853" text-anchor="end">text</text>
+<text class="col" x="859" y="870">STATE_JSON</text>
+<text class="typ" x="1007" y="870" text-anchor="end">variant</text>
+</g>
+<g class="tbl" data-table="META.SCHEMA_MIGRATIONS">
+<rect class="tbl-box" x="1085" y="780" width="200" height="85" rx="4"/>
+<rect class="tbl-head" x="1086" y="781" width="198" height="25" rx="3"/>
+<line class="tbl-rule" x1="1085" y1="806" x2="1285" y2="806"/>
+<text class="tbl-name" x="1095" y="797">SCHEMA_MIGRATIONS</text>
+<text class="key" x="1093" y="819">PK</text>
+<text class="col col-key" x="1129" y="819">VERSION</text>
+<text class="typ" x="1277" y="819" text-anchor="end">number</text>
+<text class="col" x="1129" y="836">CHECKSUM</text>
+<text class="typ" x="1277" y="836" text-anchor="end">text</text>
+<text class="col" x="1129" y="853">APPLIED_AT</text>
+<text class="typ" x="1277" y="853" text-anchor="end">timestamp</text>
+</g>
+<text class="elabel" x="445" y="256" text-anchor="middle">1:N versions</text>
+<text class="elabel" x="605" y="256" text-anchor="middle">1:1</text>
+<text class="elabel" x="362" y="194" text-anchor="middle">1:1</text>
+<text class="elabel" x="688" y="194" text-anchor="middle">1:N</text>
+<text class="elabel" x="531" y="414" text-anchor="start">1:N signed versions</text>
+<text class="elabel" x="720" y="114" text-anchor="middle">1:N bills</text>
+<text class="elabel" x="923" y="214" text-anchor="start">1:N claims</text>
+<text class="elabel" x="700" y="154" text-anchor="middle">1:N PDFs</text>
+<text class="elabel" x="912" y="594" text-anchor="middle">codes checked against the official set</text>
+<text class="elabel" x="1193" y="214" text-anchor="start">1:N</text>
+<text class="elabel" x="1308" y="310" text-anchor="middle" transform="rotate(-90 1308 310)">logs each sync</text>
+<text class="elabel" x="1073" y="495" text-anchor="middle" transform="rotate(-90 1073 495)">staged load</text>
+<text class="elabel" x="143" y="214" text-anchor="start">N:1 role</text>
+<text class="elabel" x="258" y="280" text-anchor="middle" transform="rotate(-90 258 280)">1:N actions</text>
+<text class="elabel" x="330" y="104" text-anchor="middle">assigned / created by</text>
+<text class="elabel" x="271" y="650" text-anchor="middle" transform="rotate(-90 271 650)">N:1 patient chart</text>
+<rect class="frame" x="20" y="740" width="230" height="160" rx="10"/>
+<text class="schema" x="34" y="762">LEGEND</text>
+<line class="edge" x1="34" y1="790" x2="84" y2="790" marker-end="url(#er-arrow)"/>
+<text class="legend" x="94" y="794">declared foreign key</text>
+<line class="edge logical" x1="34" y1="818" x2="84" y2="818" marker-end="url(#er-arrow)"/>
+<text class="legend" x="94" y="822">reference by stored ID</text>
+<text class="key" x="34" y="850">PK</text><text class="legend" x="94" y="850">primary key column</text>
+<text class="legend" x="34" y="878">Arrows point to the many side.</text>
+</svg></div>
+      <figcaption>CLINICAL.ENCOUNTERS is the hub. Solid lines are declared foreign keys from the clinical child tables;
+        dashed lines are tables that store the encounter, user, patient or release ID without a declared constraint.
+        Snowflake does not enforce constraints, so the save procedure and the application keep these links consistent.
+        Key columns only; every column is listed further down.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>What gets written when</h2>
+    <p class="prose">One consultation, from the first word to the claim. Steps 1 to 3 all go through the stored procedure
+      <code>CLINICAL.UPSERT_ENCOUNTER</code>, which writes the encounter and its child tables in one transaction and does
+      nothing when the record's hash has not changed.</p>
+    <ol class="steps">
+      <li><div class="step-what"><b>Consultation recorded</b><span>Ambient scribe turns the conversation into a SOAP draft.</span></div>
+        <div class="writes"><span class="tag">ENCOUNTERS</span><span class="tag">ENCOUNTER_HISTORY</span><span class="tag">ENCOUNTER_TRANSCRIPTS</span><span class="tag">ENCOUNTER_AI_OUTPUTS</span></div></li>
+      <li><div class="step-what"><b>Decision support runs</b><span>Harrison's passages retrieved per diagnosis, with the recommendations built from them.</span></div>
+        <div class="writes"><span class="tag">ENCOUNTER_AI_OUTPUTS.RETRIEVED_GUIDELINES</span><span class="tag">.RECOMMENDATIONS</span></div></li>
+      <li><div class="step-what"><b>Every later edit</b><span>New ROW_VERSION on the encounter, and a full copy appended to its history.</span></div>
+        <div class="writes"><span class="tag">ENCOUNTERS.ROW_VERSION</span><span class="tag">ENCOUNTER_HISTORY</span></div></li>
+      <li><div class="step-what"><b>Doctor signs the note</b><span>Append-only: signing or withdrawing adds a version, nothing is overwritten. The note goes to the coding queue.</span></div>
+        <div class="writes"><span class="tag">SOAP_NOTES</span><span class="tag">ENCOUNTERS.STATUS</span></div></li>
+      <li><div class="step-what"><b>Coder accepts or rejects codes</b><span>Each code is checked against the official release valid on the visit date.</span></div>
+        <div class="writes"><span class="tag">ENCOUNTER_CODES</span><span class="tag">reads REFERENCE.CODES</span></div></li>
+      <li><div class="step-what"><b>Send to RCM</b><span>Priced lines go on the bill; open validation issues travel with it as RCM exceptions. The bill PDF is stored with its SHA-256.</span></div>
+        <div class="writes"><span class="tag new">GENERATED_BILLS.BILL_JSON</span><span class="tag">BILL_DOCUMENTS</span></div></li>
+      <li><div class="step-what"><b>Claim generated and validated</b><span>837P / 837I draft and its validation report; a regenerated claim soft-deletes the one it replaces.</span></div>
+        <div class="writes"><span class="tag">CLAIMS</span><span class="tag">BILL_DOCUMENTS</span></div></li>
+    </ol>
+    <p class="always">At every step, the user's action is appended to <code>SECURITY.AUDIT_LOG</code> with who did it and when.
+      In the background, a daily sync loads new ICD-10-CM (CDC) and HCPCS (CMS via NLM) releases into <code>REFERENCE</code>
+      and records each attempt in <code>SYNC_RUNS</code>.</p>
+  </section>
+
+  <section>
+    <h2>Tables by schema</h2>
+    <p class="prose">Row counts as of 22 Nov 2026. Open a table to see every column.</p>
+    <div class="schemas"><article class="schema-card"><header><h3>CLINICAL</h3><span class="fact">6 tables</span></header><p>One row per consultation, plus everything the agents produce for it.</p><details><summary><span class="name">ENCOUNTERS</span><span class="rows">1 row</span></summary><p class="purpose">One row per consultation. Survives after the patient leaves.</p><table class="cols"><tbody><tr><td class="pk">ENCOUNTER_ID · PK</td><td>text</td></tr><tr><td>PATIENT_ID</td><td>text</td></tr><tr><td>EHR_ENCOUNTER_ID</td><td>text</td></tr><tr><td>EHR_NOTE_ID</td><td>text</td></tr><tr><td>ENCOUNTER_TYPE</td><td>text</td></tr><tr><td>PATIENT_NAME</td><td>text</td></tr><tr><td>PATIENT_AGE</td><td>text</td></tr><tr><td>PATIENT_GENDER</td><td>text</td></tr><tr><td>PATIENT_DOB</td><td>text</td></tr><tr><td>MRN</td><td>text</td></tr><tr><td>DOCTOR</td><td>text</td></tr><tr><td>STATUS</td><td>text</td></tr><tr><td>ASSIGNED_TO</td><td>text</td></tr><tr><td>CREATED_BY</td><td>text</td></tr><tr><td>ENCOUNTER_AT</td><td>timestamp</td></tr><tr><td>APPROVAL_DATE</td><td>text</td></tr><tr><td>BILL_GENERATED_AT</td><td>text</td></tr><tr><td>ANALYSIS_VERSION</td><td>text</td></tr><tr><td>RECORD_JSON</td><td>variant</td></tr><tr><td>RECORD_HASH</td><td>text</td></tr><tr><td>ROW_VERSION</td><td>number</td></tr><tr><td>IS_DELETED</td><td>bool</td></tr><tr><td>CREATED_AT</td><td>timestamp</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr><tr><td>UPDATED_BY</td><td>text</td></tr></tbody></table></details><details><summary><span class="name">ENCOUNTER_AI_OUTPUTS</span><span class="rows">1 row</span></summary><p class="purpose">Ambient Scribe SOAP draft + Clinical Decision Support agent output.</p><table class="cols"><tbody><tr><td class="pk">ENCOUNTER_ID · PK</td><td>text</td></tr><tr><td>SOAP_DRAFT</td><td>text</td></tr><tr><td>PATIENT_SUMMARY</td><td>text</td></tr><tr><td>KEY_HIGHLIGHTS</td><td>variant</td></tr><tr><td>RETRIEVED_GUIDELINES</td><td>text</td></tr><tr><td>RECOMMENDATIONS</td><td>text</td></tr><tr><td>MANUAL_INSIGHTS</td><td>variant</td></tr><tr><td>CDS_REQUESTED</td><td>bool</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">ENCOUNTER_CODES</span><span class="rows">7 rows</span></summary><p class="purpose">Coding agent ICD-10-CM / CPT-HCPCS suggestions and coder decisions.</p><table class="cols"><tbody><tr><td class="pk">ENCOUNTER_ID · PK</td><td>text</td></tr><tr><td class="pk">CODE_SYSTEM · PK</td><td>text</td></tr><tr><td class="pk">CODE · PK</td><td>text</td></tr><tr><td>EXTRACTED_TERM</td><td>text</td></tr><tr><td>DESCRIPTION</td><td>text</td></tr><tr><td>DECISION_STATUS</td><td>text</td></tr><tr><td>DECIDED_BY</td><td>text</td></tr><tr><td>SOURCE</td><td>text</td></tr><tr><td>DETAILS</td><td>variant</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">ENCOUNTER_HISTORY</span><span class="rows">15 rows</span></summary><p class="purpose">Append-only version history of every encounter change (clinical audit trail).</p><table class="cols"><tbody><tr><td class="pk">ENCOUNTER_ID · PK</td><td>text</td></tr><tr><td class="pk">ROW_VERSION · PK</td><td>number</td></tr><tr><td>RECORD_JSON</td><td>variant</td></tr><tr><td>RECORD_HASH</td><td>text</td></tr><tr><td>CHANGED_BY</td><td>text</td></tr><tr><td>CHANGED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">ENCOUNTER_TRANSCRIPTS</span><span class="rows">1 row</span></summary><p class="purpose">Ambient Scribe transcript (raw text + parsed speaker turns).</p><table class="cols"><tbody><tr><td class="pk">ENCOUNTER_ID · PK</td><td>text</td></tr><tr><td>TRANSCRIPT</td><td>text</td></tr><tr><td>TRANSCRIPT_DATA</td><td>variant</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">SOAP_NOTES</span><span class="rows">2 rows</span></summary><p class="purpose">Clinician-approved SOAP notes. Append-only: approve/withdraw adds a version.</p><table class="cols"><tbody><tr><td class="pk">ENCOUNTER_ID · PK</td><td>text</td></tr><tr><td class="pk">VERSION · PK</td><td>number</td></tr><tr><td>PATIENT_ID</td><td>text</td></tr><tr><td>STATUS</td><td>text</td></tr><tr><td>SOAP_NOTE</td><td>text</td></tr><tr><td>APPROVED_TIMESTAMP</td><td>text</td></tr><tr><td>ACTOR</td><td>text</td></tr><tr><td>CREATED_AT</td><td>timestamp</td></tr></tbody></table></details></article>
+<article class="schema-card"><header><h3>BILLING</h3><span class="fact">3 tables</span></header><p>Bills released to RCM, claim drafts, and the PDFs of both.</p><details><summary><span class="name">BILL_DOCUMENTS</span><span class="rows">1 row</span></summary><p class="purpose">Rendered PDF bills and claims, stored in the database (no local files).</p><table class="cols"><tbody><tr><td class="pk">DOCUMENT_ID · PK</td><td>text</td></tr><tr><td>DOCUMENT_TYPE</td><td>text</td></tr><tr><td>ENCOUNTER_ID</td><td>text</td></tr><tr><td>RECORD_ID</td><td>text</td></tr><tr><td>PATIENT_NAME</td><td>text</td></tr><tr><td>REFERENCE_ID</td><td>text</td></tr><tr><td>FILE_NAME</td><td>text</td></tr><tr><td>MIME_TYPE</td><td>text</td></tr><tr><td>SIZE_BYTES</td><td>number</td></tr><tr><td>SHA256</td><td>text</td></tr><tr><td>CONTENT</td><td>binary</td></tr><tr><td>METADATA</td><td>variant</td></tr><tr><td>CREATED_BY</td><td>text</td></tr><tr><td>CREATED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">CLAIMS</span><span class="rows">0 rows</span></summary><p class="purpose">Generated 837P / 837I claim drafts.</p><table class="cols"><tbody><tr><td class="pk">CLAIM_ID · PK</td><td>text</td></tr><tr><td>ENCOUNTER_ID</td><td>text</td></tr><tr><td>CLAIM_TYPE</td><td>text</td></tr><tr><td>STATUS</td><td>text</td></tr><tr><td>PATIENT_NAME</td><td>text</td></tr><tr><td>CLAIM_AMOUNT</td><td>number</td></tr><tr><td>CLAIM_JSON</td><td>variant</td></tr><tr><td>VALIDATION_REPORT</td><td>variant</td></tr><tr><td>CREATED_BY</td><td>text</td></tr><tr><td>CREATED_AT</td><td>timestamp</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr><tr><td>IS_DELETED</td><td>bool</td></tr></tbody></table></details><details><summary><span class="name">GENERATED_BILLS</span><span class="rows">0 rows</span></summary><p class="purpose">Draft bills released to RCM (input to claim generation).</p><table class="cols"><tbody><tr><td class="pk">BILL_KEY · PK</td><td>text</td></tr><tr><td>SOURCE</td><td>text</td></tr><tr><td>ENCOUNTER_ID</td><td>text</td></tr><tr><td>PATIENT_ID</td><td>text</td></tr><tr><td>GROSS_TOTAL</td><td>number</td></tr><tr><td>BILL_JSON</td><td>variant</td></tr><tr><td>CREATED_BY</td><td>text</td></tr><tr><td>CREATED_AT</td><td>timestamp</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details></article>
+<article class="schema-card"><header><h3>REFERENCE</h3><span class="fact">4 tables</span></header><p>Official ICD-10-CM and HCPCS releases, with every code&#x27;s version history.</p><details><summary><span class="name">CODES</span><span class="rows">107,212 rows</span></summary><p class="purpose">Code versions with validity periods (type-2 history).</p><table class="cols"><tbody><tr><td class="pk">CODE_SYSTEM · PK</td><td>text</td></tr><tr><td>CODE</td><td>text</td></tr><tr><td class="pk">CODE_RAW · PK</td><td>text</td></tr><tr><td>SHORT_DESCRIPTION</td><td>text</td></tr><tr><td>LONG_DESCRIPTION</td><td>text</td></tr><tr><td>IS_BILLABLE</td><td>bool</td></tr><tr><td class="pk">VALID_FROM · PK</td><td>date</td></tr><tr><td>VALID_TO</td><td>date</td></tr><tr><td>IS_LATEST</td><td>bool</td></tr><tr><td>RELEASE_ID</td><td>text</td></tr><tr><td>RETIRED_IN_RELEASE</td><td>text</td></tr><tr><td>ROW_HASH</td><td>text</td></tr><tr><td>LOADED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">CODES_STAGE</span><span class="rows">0 rows</span></summary><p class="purpose">Transient load area for a sync run (rows are deleted after each run).</p><table class="cols"><tbody><tr><td>RUN_ID</td><td>text</td></tr><tr><td>CODE_SYSTEM</td><td>text</td></tr><tr><td>CODE</td><td>text</td></tr><tr><td>CODE_RAW</td><td>text</td></tr><tr><td>SHORT_DESCRIPTION</td><td>text</td></tr><tr><td>LONG_DESCRIPTION</td><td>text</td></tr><tr><td>IS_BILLABLE</td><td>bool</td></tr><tr><td>SOURCE_VALID_FROM</td><td>date</td></tr><tr><td>SOURCE_VALID_TO</td><td>date</td></tr><tr><td>ROW_HASH</td><td>text</td></tr></tbody></table></details><details><summary><span class="name">CODE_SET_RELEASES</span><span class="rows">3 rows</span></summary><p class="purpose">Every official code-set release that has been loaded, with change statistics.</p><table class="cols"><tbody><tr><td class="pk">CODE_SYSTEM · PK</td><td>text</td></tr><tr><td class="pk">RELEASE_ID · PK</td><td>text</td></tr><tr><td>SOURCE</td><td>text</td></tr><tr><td>SOURCE_URL</td><td>text</td></tr><tr><td>EFFECTIVE_FROM</td><td>date</td></tr><tr><td>CODE_COUNT</td><td>number</td></tr><tr><td>BILLABLE_COUNT</td><td>number</td></tr><tr><td>ADDED_COUNT</td><td>number</td></tr><tr><td>CHANGED_COUNT</td><td>number</td></tr><tr><td>RETIRED_COUNT</td><td>number</td></tr><tr><td>CHECKSUM</td><td>text</td></tr><tr><td>LOADED_BY</td><td>text</td></tr><tr><td>LOADED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">SYNC_RUNS</span><span class="rows">8 rows</span></summary><p class="purpose">Audit log of every code-set synchronisation attempt.</p><table class="cols"><tbody><tr><td class="pk">RUN_ID · PK</td><td>text</td></tr><tr><td>CODE_SYSTEM</td><td>text</td></tr><tr><td>TRIGGERED_BY</td><td>text</td></tr><tr><td>STATUS</td><td>text</td></tr><tr><td>RELEASE_ID</td><td>text</td></tr><tr><td>MESSAGE</td><td>text</td></tr><tr><td>DETAIL</td><td>variant</td></tr><tr><td>STARTED_AT</td><td>timestamp</td></tr><tr><td>FINISHED_AT</td><td>timestamp</td></tr></tbody></table></details></article>
+<article class="schema-card"><header><h3>SECURITY</h3><span class="fact">4 tables</span></header><p>Users, role permissions and the audit trail.</p><details><summary><span class="name">APP_USERS</span><span class="rows">1 row</span></summary><p class="purpose">Application users. Passwords are stored only as salted PBKDF2 hashes.</p><table class="cols"><tbody><tr><td class="pk">USERNAME · PK</td><td>text</td></tr><tr><td>NAME</td><td>text</td></tr><tr><td>EMAIL</td><td>text</td></tr><tr><td>ROLE</td><td>text</td></tr><tr><td>ACTIVE</td><td>bool</td></tr><tr><td>USER_JSON</td><td>variant</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">AUDIT_LOG</span><span class="rows">20 rows</span></summary><p class="purpose">Append-only user action audit trail (never truncated, unlike the in-app view).</p><table class="cols"><tbody><tr><td class="pk">EVENT_ID · PK</td><td>text</td></tr><tr><td>EVENT_AT</td><td>text</td></tr><tr><td>ACTOR</td><td>text</td></tr><tr><td>ACTION</td><td>text</td></tr><tr><td>DETAIL</td><td>text</td></tr><tr><td>EVENT_JSON</td><td>variant</td></tr><tr><td>INSERTED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">ROLE_PERMISSIONS</span><span class="rows">14 rows</span></summary><table class="cols"><tbody><tr><td class="pk">ROLE · PK</td><td>text</td></tr><tr><td>PERMISSIONS</td><td>variant</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">STORE_SETTINGS</span><span class="rows">0 rows</span></summary><table class="cols"><tbody><tr><td class="pk">SETTING_KEY · PK</td><td>text</td></tr><tr><td>SETTING_VALUE</td><td>variant</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details></article>
+<article class="schema-card"><header><h3>EHR</h3><span class="fact">2 tables</span></header><p>The demo EHR chart: patients, problems, medications, labs and more, one row per sheet.</p><details><summary><span class="name">SHEETS</span><span class="rows">21 rows</span></summary><p class="purpose">EHR chart sheets. Use the EHR.V_* views for row-level, column-typed access.</p><table class="cols"><tbody><tr><td class="pk">SHEET_NAME · PK</td><td>text</td></tr><tr><td>SHEET_ORDER</td><td>number</td></tr><tr><td>KIND</td><td>text</td></tr><tr><td>HEADERS</td><td>variant</td></tr><tr><td>RECORDS</td><td>variant</td></tr><tr><td>RAW_ROWS</td><td>variant</td></tr><tr><td>ROW_COUNT</td><td>number</td></tr><tr><td>CONTENT_HASH</td><td>text</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details><details><summary><span class="name">STORE_METADATA</span><span class="rows">1 row</span></summary><table class="cols"><tbody><tr><td class="pk">STORE_KEY · PK</td><td>text</td></tr><tr><td>FORMAT</td><td>text</td></tr><tr><td>SOURCE_WORKBOOK</td><td>text</td></tr><tr><td>SOURCE_CREATED_AT</td><td>text</td></tr><tr><td>EXTRA</td><td>variant</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details></article>
+<article class="schema-card"><header><h3>VBC</h3><span class="fact">1 tables</span></header><p>Value-based care workspace state, with its hash-chained audit kept intact.</p><details><summary><span class="name">STATE_DOCUMENTS</span><span class="rows">0 rows</span></summary><p class="purpose">Value-based care workspace state (hash-chained audit preserved inside STATE_JSON).</p><table class="cols"><tbody><tr><td class="pk">DOC_KEY · PK</td><td>text</td></tr><tr><td>REVISION</td><td>number</td></tr><tr><td>STATE_TEXT</td><td>text</td></tr><tr><td>STATE_JSON</td><td>variant</td></tr><tr><td>UPDATED_AT</td><td>timestamp</td></tr></tbody></table></details></article>
+<article class="schema-card"><header><h3>META</h3><span class="fact">1 tables</span></header><p>Which schema migrations have run, with checksums.</p><details><summary><span class="name">SCHEMA_MIGRATIONS</span><span class="rows">3 rows</span></summary><table class="cols"><tbody><tr><td class="pk">VERSION · PK</td><td>number</td></tr><tr><td>DESCRIPTION</td><td>text</td></tr><tr><td>SCRIPT</td><td>text</td></tr><tr><td>CHECKSUM</td><td>text</td></tr><tr><td>APPLIED_BY</td><td>text</td></tr><tr><td>APPLIED_AT</td><td>timestamp</td></tr><tr><td>DURATION_MS</td><td>number</td></tr></tbody></table></details></article></div>
+  </section>
+
+  <section>
+    <h2>Design decisions</h2>
+    <div class="decisions">
+      <div class="decision"><h3>Full record plus typed columns</h3><p>Each encounter keeps its complete record as VARIANT JSON, so no field is lost, and copies the fields people query (patient, status, assignee, dates) into typed columns.</p></div>
+      <div class="decision"><h3>History is append-only</h3><p>Encounter versions, SOAP note versions and the audit log only ever gain rows. Any past state of a consultation can be read back.</p></div>
+      <div class="decision"><h3>Code sets with validity dates</h3><p>Every ICD-10-CM and HCPCS code version has VALID_FROM and VALID_TO, so a claim is checked against the codes in force on the visit date, not today's list.</p></div>
+      <div class="decision"><h3>PDFs stored in the database</h3><p>Bills and claims are saved as BINARY with a SHA-256 hash. The same document is never stored twice, and nothing depends on a local folder.</p></div>
+      <div class="decision"><h3>Least-privilege access</h3><p>The app connects as a key-pair service user with role NUUCARE_APP. Schema changes run as NUUCARE_OWNER. Reporting can use NUUCARE_READONLY.</p></div>
+      <div class="decision"><h3>Cost guard</h3><p>An extra-small warehouse that suspends after 60 seconds idle, under a resource monitor capped at 25 credits a month.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Views for reporting</h2>
+    <div class="views">
+      <div><b>CLINICAL</b><span><code>V_PATIENT_HISTORY</code> every consultation per patient with AI output and signed note · <code>V_LATEST_SOAP_NOTES</code> · <code>V_CODING_SUMMARY</code></span></div>
+      <div><b>EHR</b><span><code>V_PATIENTS</code>, <code>V_ENCOUNTERS</code>, <code>V_PROBLEMS</code>, <code>V_MEDICATIONS</code>, <code>V_ALLERGIES</code>, <code>V_LABS</code>, <code>V_VITALS</code>, <code>V_BILLING_CLAIMS</code>, <code>V_SHEET_ROWS</code>: chart rows as typed columns</span></div>
+      <div><b>BILLING</b><span><code>V_BILL_DOCUMENTS</code> PDF catalogue without the binary payload</span></div>
+      <div><b>REFERENCE</b><span><code>V_CURRENT_CODES</code> · <code>V_CODE_SET_STATUS</code> · <code>V_CODE_CHANGES</code> codes added, revised or retired per release</span></div>
+      <div><b>SECURITY</b><span><code>V_AUDIT_RECENT</code></span></div>
+    </div>
+  </section>
+
+  <footer>Built from the live schema (INFORMATION_SCHEMA) of NUUCARE_DB and the migration scripts in
+    <code>snowflake/migrations</code>. Schema version V003, applied 19 Nov 2026.</footer>
+</div>
