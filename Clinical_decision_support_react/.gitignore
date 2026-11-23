@@ -27,3 +27,4 @@ chroma_db/
 web/node_modules/
 !web/dist/
 !web/dist/**
+web/*.tsbuildinfo
