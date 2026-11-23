@@ -113,3 +113,25 @@ def edit_record(record_id: str, actor: str, expected_version: int | None) -> Ite
 def mutate(record_id: str, actor: str, expected_version: int | None, change: Callable[[dict[str, Any]], Any]) -> Any:
     with edit_record(record_id, actor, expected_version) as record:
         return change(record)
+
+
+def delete_record(record_id: str, actor: str, expected_version: int | None,
+                  guard: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
+    """Remove a consultation (Snowflake: soft delete, history kept). ``guard`` may raise to refuse.
+
+    Same version check as an edit: you cannot delete something you have not seen in its latest state.
+    """
+    with _record_lock(record_id):
+        record = get_record(record_id)
+        current = version_of(record)
+        if expected_version is not None and expected_version != current:
+            raise ApiError(409, "stale_record", "This consultation was changed by someone else since you opened it. Reload first.",
+                           {"current_version": current})
+        if guard:
+            guard(record)
+        if use_snowflake():
+            encounter_repo.soft_delete(record_id, actor)
+        else:
+            with _LOCK:
+                _write_file([r for r in _read_file() if r.get("id") != record_id])
+        return record

@@ -315,6 +315,25 @@ def unlock_user(store: dict[str, Any], username: str, actor: str) -> None:
         audit(store, actor, "user.unlock", user["username"])
 
 
+def delete_user(store: dict[str, Any], username: str, actor: str) -> dict[str, Any]:
+    """Remove an account. Audit entries keep the username; users who fell back to it lose that fallback.
+
+    Refuses the last active Super Admin (the system would be unmanageable).
+    """
+    user = get_user(store, username)
+    if user is None:
+        raise ValueError(f"Unknown user {username}.")
+    if user.get("role") == SUPER_ADMIN and user.get("active", True) and len(_active_super_admins(store)) <= 1:
+        raise ValueError("At least one active Super Admin account is required.")
+    store["users"] = [u for u in store["users"] if u is not user]
+    for other in store["users"]:
+        if other.get("fallback") == user["username"]:
+            other["fallback"] = None
+            audit(store, actor, "user.fallback", f"{other['username']}: {user['username']} → None (account deleted)")
+    audit(store, actor, "user.delete", f"{user['username']} ({user.get('role')})")
+    return user
+
+
 def authenticate(store: dict[str, Any], username: str, password: str, now: datetime | None = None) -> dict[str, Any]:
     """Verify credentials; tracks failures and locks the account after repeated misses."""
     now = now or _now()

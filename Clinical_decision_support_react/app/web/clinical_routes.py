@@ -29,6 +29,7 @@ from app.domain.clinical_text import (
 )
 from app.domain.ehr_chart import active_drug_allergies, care_gaps, chart_context, medication_safety_checks, primary_coverage
 from app.domain.encounter_pipeline import MASTER_INSIGHTS, get_record_insights
+from app.domain.masking import IDENTITY, NARRATIVE, field_class
 from app.domain.settings import ANALYSIS_VERSION, APPROVED_SOAP_DIR
 from app.web import ehr, records
 from app.web.context import Caller, requires, store_transaction
@@ -150,25 +151,44 @@ def _run_scribe(caller: Caller, transcript: str) -> dict[str, Any]:
     return _scribe_result(_store_draft(caller.username, data), data)
 
 
-# ---------------------------------------------------------------- patients
+# ---------------------------------------------------------------- patients (EHR Patient_Master CRUD)
+def _consultation_counts() -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records.list_records():
+        patient_id = ehr.record_patient_id(record)
+        if patient_id:
+            counts[patient_id] = counts.get(patient_id, 0) + 1
+    return counts
+
+
 @router.get("/patients")
-def search_patients(q: str = "", limit: int = 25, caller: Caller = Depends(requires("Clinical Review"))):
+def search_patients(q: str = "", limit: int = 25, offset: int = 0, with_counts: bool = False,
+                    caller: Caller = Depends(requires("Clinical Review"))):
     query = q.strip().lower()
-    rows = []
+    # A role that sees identity masked can look patients up by patient ID only: searching by name or DOB
+    # would reveal what the mask hides.
+    search_keys = ("patient_id",) if caller.masking.hides(IDENTITY) else ("display_name", "patient_id", "MRN", "DOB")
+    matches = []
     for patient in ehr.patients():
-        haystack = " ".join(str(patient.get(key, "")) for key in ("display_name", "patient_id", "MRN", "DOB")).lower()
-        if query and query not in haystack:
-            continue
-        rows.append({
+        haystack = " ".join(str(patient.get(key, "")) for key in search_keys).lower()
+        if not query or query in haystack:
+            matches.append(patient)
+    limit, offset = max(1, min(limit, 500)), max(0, offset)
+    counts = _consultation_counts() if with_counts else {}
+    rows = []
+    for patient in matches[offset:offset + limit]:
+        row = {
             "patient_id": patient.get("patient_id"),
             "name": patient.get("display_name") or "Unknown patient",
             "mrn": patient.get("MRN", ""),
-            "dob": patient.get("DOB", ""),
+            "dob": str(patient.get("DOB") or "")[:10],
             "sex": patient.get("Sex_at_Birth", ""),
-        })
-        if len(rows) >= max(1, min(limit, 100)):
-            break
-    return {"patients": rows}
+        }
+        if with_counts:
+            row["consultations"] = counts.get(str(patient.get("patient_id")), 0)
+            row["city"] = patient.get("City") or ""
+        rows.append(row)
+    return {"patients": rows, "total": len(matches), "offset": offset, "limit": limit}
 
 
 @router.get("/patients/{patient_id}/context")
@@ -185,26 +205,142 @@ def patient_context(patient_id: str, caller: Caller = Depends(requires("Clinical
     }
 
 
-class NewPatient(BaseModel):
+def _patient_detail(patient_id: str, caller: Caller) -> dict[str, Any]:
+    patient = ehr.get_patient(patient_id)
+    linked = [record_summary(r) for r in records.list_records() if ehr.record_patient_id(r) == str(patient_id)]
+    chart_rows = ehr.chart_row_count(patient_id)
+    can_delete = not caller.masking.hides(IDENTITY) and not linked and (caller.can("EHR Demo Data", "Edit") or (caller.can("Clinical Review", "Edit") and chart_rows == 0))
+    if linked:
+        reason = f"{len(linked)} consultation(s) belong to this patient. Delete those drafts first; signed notes are kept."
+    elif caller.masking.hides(IDENTITY):
+        reason = "Your role sees this patient's identity masked, so it cannot delete the patient."
+    elif not can_delete:
+        reason = "This patient has EHR chart history. Only a role with EHR Demo Data · Edit can delete them."
+    else:
+        reason = ""
+    return {
+        "patient": ehr.patient_view(patient),
+        "consultations": linked,
+        "chart_rows": chart_rows,
+        "permissions": {"edit": caller.can("Clinical Review", "Edit"), "delete": can_delete, "delete_reason": reason,
+                        "masked": sorted(caller.masking.masked)},
+    }
+
+
+def _validate_dob(value: str | None) -> str | None:
+    if value is None:
+        return value
+    born = datetime.strptime(value, "%Y-%m-%d").date()
+    if born > datetime.now().date() or born.year < 1900:
+        raise ValueError("Date of birth must be a real date in the past")
+    return value
+
+
+_EMAIL = r"^$|^[^@\s]+@[^@\s]+\.[^@\s]+$"
+
+
+class PatientFields(BaseModel):
+    mobile: str = Field(default="", max_length=30)
+    email: str = Field(default="", max_length=120, pattern=_EMAIL)
+    street_address: str = Field(default="", max_length=120)
+    city: str = Field(default="", max_length=60)
+    state: str = Field(default="", max_length=30)
+    zip: str = Field(default="", max_length=12)
+    preferred_language: str = Field(default="", max_length=40)
+
+
+class NewPatient(PatientFields):
     first_name: str = Field(min_length=1, max_length=60)
     last_name: str = Field(min_length=1, max_length=60)
     dob: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     sex: Literal["Male", "Female", "Other"] = "Other"
+    allow_duplicate: bool = False
 
     @field_validator("dob")
     @classmethod
-    def _past_date(cls, value: str) -> str:
-        born = datetime.strptime(value, "%Y-%m-%d").date()
-        if born > datetime.now().date() or born.year < 1900:
-            raise ValueError("Date of birth must be a real date in the past")
-        return value
+    def _past_date(cls, value):
+        return _validate_dob(value)
 
 
 @router.post("/patients")
 def register_patient(body: NewPatient, caller: Caller = Depends(requires("Clinical Review", "Edit"))):
-    patient = ehr.create_patient(body.first_name.strip(), body.last_name.strip(), body.dob, body.sex)
+    first, last = body.first_name.strip(), body.last_name.strip()
+    if not first or not last:
+        raise ApiError(422, "validation_error", "First and last name are required.")
+    duplicates = ehr.find_duplicates(first, last, body.dob)
+    if duplicates and not body.allow_duplicate:
+        ids = ", ".join(f"{p.get('Patient_ID')} ({p.get('MRN')})" for p in duplicates[:3])
+        raise ApiError(409, "possible_duplicate",
+                       f"A patient with the same name and date of birth already exists: {ids}. Search for them, or register anyway.",
+                       {"patient_ids": ",".join(str(p.get("Patient_ID")) for p in duplicates)})
+    extra = body.model_dump(include=set(PatientFields.model_fields))
+    patient = ehr.create_patient(first, last, body.dob, body.sex, **extra)
+    with store_transaction() as store:
+        ac.audit(store, caller.username, "patient.create", f"{patient.get('Patient_ID')} {first} {last}")
     return {"patient_id": patient.get("Patient_ID") or patient.get("patient_id"), "mrn": patient.get("MRN", "")}
 
+
+@router.get("/patients/{patient_id}")
+def get_patient(patient_id: str, caller: Caller = Depends(requires("Clinical Review"))):
+    return _patient_detail(patient_id, caller)
+
+
+class PatientUpdate(BaseModel):
+    etag: str
+    first_name: str | None = Field(default=None, min_length=1, max_length=60)
+    last_name: str | None = Field(default=None, min_length=1, max_length=60)
+    dob: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    sex: Literal["Male", "Female", "Other"] | None = None
+    mobile: str | None = Field(default=None, max_length=30)
+    email: str | None = Field(default=None, max_length=120, pattern=_EMAIL)
+    street_address: str | None = Field(default=None, max_length=120)
+    city: str | None = Field(default=None, max_length=60)
+    state: str | None = Field(default=None, max_length=30)
+    zip: str | None = Field(default=None, max_length=12)
+    preferred_language: str | None = Field(default=None, max_length=40)
+
+    @field_validator("dob")
+    @classmethod
+    def _past_date(cls, value):
+        return _validate_dob(value)
+
+
+@router.put("/patients/{patient_id}")
+def update_patient(patient_id: str, body: PatientUpdate, caller: Caller = Depends(requires("Clinical Review", "Edit"))):
+    changes = {k: v.strip() for k, v in body.model_dump(exclude={"etag"}).items() if v is not None}
+    for phi in sorted({field_class(k) for k in changes} - {None}):
+        caller.require_phi(phi, "these patient details")
+    if any(not changes.get(k, "x") for k in ("first_name", "last_name")):
+        raise ApiError(422, "validation_error", "First and last name cannot be blank.")
+    patient = ehr.update_patient(patient_id, body.etag, changes)
+    # Consultations keep a copy of name / DOB / MRN for their headers: keep them in step with the EHR.
+    view = ehr.patient_view(patient)
+    for record in records.list_records():
+        if ehr.record_patient_id(record) != str(patient_id):
+            continue
+        if (record.get("name"), str(record.get("dob") or "")[:10]) == (view["name"], view["dob"]):
+            continue
+
+        def sync(rec, v=view):
+            rec["name"], rec["dob"], rec["mrn"] = v["name"], v["dob"], v["mrn"] or rec.get("mrn", "")
+
+        records.mutate(record["id"], caller.username, None, sync)
+    with store_transaction() as store:
+        ac.audit(store, caller.username, "patient.update", f"{patient_id}: {', '.join(sorted(changes)) or 'no change'}")
+    return _patient_detail(patient_id, caller)
+
+
+@router.delete("/patients/{patient_id}")
+def delete_patient(patient_id: str, etag: str, caller: Caller = Depends(requires("Clinical Review", "Edit"))):
+    detail = _patient_detail(patient_id, caller)
+    if detail["consultations"]:
+        raise ApiError(409, "patient_in_use", detail["permissions"]["delete_reason"])
+    if not detail["permissions"]["delete"]:
+        raise ApiError(403, "forbidden", detail["permissions"]["delete_reason"])
+    ehr.delete_patient(patient_id, etag)
+    with store_transaction() as store:
+        ac.audit(store, caller.username, "patient.delete", f"{patient_id} {detail['patient']['name']}")
+    return {"deleted": patient_id}
 
 # ---------------------------------------------------------------- ambient scribe
 class TranscriptIn(BaseModel):
@@ -379,8 +515,8 @@ def review_view(record: dict[str, Any], caller: Caller) -> dict[str, Any]:
         "insights": [{"name": item, "category": get_insight_category(item)[0]} for item in insights],
         "handoff": "Queued for coding" if is_approved else "Awaiting signature",
         "permissions": {
-            "edit": caller.can("Clinical Review", "Edit") and not is_approved,
-            "sign": caller.can("Clinical Review", "Approve") and not is_approved,
+            "edit": caller.can("Clinical Review", "Edit") and not is_approved and not caller.masking.hides(NARRATIVE),
+            "sign": caller.can("Clinical Review", "Approve") and not is_approved and not caller.masking.hides(NARRATIVE),
         },
         "master_insights": [item for item in MASTER_INSIGHTS if item != "None"],
     }
@@ -389,6 +525,24 @@ def review_view(record: dict[str, Any], caller: Caller) -> dict[str, Any]:
 @router.get("/consultations/{record_id}")
 def get_consultation(record_id: str, caller: Caller = Depends(requires("Clinical Review"))):
     return review_view(records.get_record(record_id), caller)
+
+
+@router.delete("/consultations/{record_id}")
+def delete_consultation(record_id: str, version: int, caller: Caller = Depends(requires("Clinical Review", "Edit"))):
+    """Delete a draft consultation. Signed notes are part of the legal record and are never deleted."""
+
+    def guard(rec):
+        if rec.get("status") == "Approved" or rec.get("bill_generated_at"):
+            raise ApiError(409, "note_signed", "Signed notes are part of the legal medical record and cannot be deleted.")
+        owner = rec.get("created_by")
+        if owner and owner != caller.username and not caller.can("Admin Dashboard", "Edit"):
+            raise ApiError(403, "forbidden", "Only the clinician who created this draft (or an administrator) can delete it.")
+
+    record = records.delete_record(record_id, caller.username, version, guard)
+    warning = ehr.cancel_consultation_links(record)
+    with store_transaction() as store:
+        ac.audit(store, caller.username, "consultation.delete", f"{record_id} {record.get('name', '')}")
+    return {"deleted": record_id, "warnings": [w for w in (warning,) if w]}
 
 
 class VersionedBody(BaseModel):
@@ -468,6 +622,7 @@ class PlanLine(BaseModel):
 
 @router.post("/consultations/{record_id}/plan")
 def push_to_plan(record_id: str, body: PlanLine, caller: Caller = Depends(requires("Clinical Review", "Edit"))):
+    caller.require_phi(NARRATIVE, "the clinical note")
     def change(rec):
         _ensure_draft(rec)
         current = rec.get("summary") or rec.get("patient_summary", "")
@@ -489,6 +644,7 @@ class NoteBody(BaseModel):
 
 @router.put("/consultations/{record_id}/note")
 def save_note(record_id: str, body: NoteBody, caller: Caller = Depends(requires("Clinical Review", "Edit"))):
+    caller.require_phi(NARRATIVE, "the clinical note")
     if not body.summary.strip():
         raise ApiError(422, "note_empty", "The SOAP note cannot be empty.")
 
@@ -508,6 +664,7 @@ class InsightBody(BaseModel):
 
 @router.post("/consultations/{record_id}/insights")
 def add_insights(record_id: str, body: InsightBody, caller: Caller = Depends(requires("Clinical Review", "Edit"))):
+    caller.require_phi(NARRATIVE, "the clinical note")
     unknown = [item for item in body.insights if item not in MASTER_INSIGHTS or item == "None"]
     if unknown:
         raise ApiError(422, "unknown_insight", f"Not a selectable insight: {', '.join(unknown)}")
@@ -532,6 +689,7 @@ class SignBody(BaseModel):
 
 @router.post("/consultations/{record_id}/sign")
 def sign_note(record_id: str, body: SignBody, caller: Caller = Depends(requires("Clinical Review", "Approve"))):
+    caller.require_phi(NARRATIVE, "the clinical note")
     def change(rec):
         _ensure_draft(rec)
         if body.summary is not None:

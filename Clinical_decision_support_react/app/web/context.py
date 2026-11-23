@@ -61,6 +61,19 @@ class Caller:
     def can(self, module: str, action: str = "View") -> bool:
         return ac.can(self.store, self.user, module, action)
 
+    @property
+    def masking(self):
+        from app.domain.masking import Policy
+
+        return Policy.for_caller(self)
+
+    def require_phi(self, phi: str, what: str) -> None:
+        """Writes must not be based on masked values: you cannot change what you are not allowed to see."""
+        from app.domain.masking import CLASS_LABELS
+
+        if self.masking.hides(phi):
+            raise ApiError(403, "phi_masked", f"Your role sees {CLASS_LABELS[phi]} masked, so it cannot change {what}.")
+
     def require(self, module: str, action: str = "View") -> None:
         if not self.can(module, action):
             raise ApiError(403, "forbidden", f"Your role ({self.user.get('role')}) cannot do this ({module} · {action}).")
@@ -78,7 +91,9 @@ def _resolve(request: Request, allow_password_change: bool) -> Caller:
         raise ApiError(401, "account_inactive", "Your account is no longer active. Contact an administrator.")
     if user.get("must_change_password") and not allow_password_change:
         raise ApiError(403, "password_change_required", "Change your temporary password to continue.")
-    return Caller(user=ac.public_user(user), store=store, token=token or "")
+    caller = Caller(user=ac.public_user(user), store=store, token=token or "")
+    request.state.caller = caller  # read by the PHI masking middleware (app/main.py) after the route answers
+    return caller
 
 
 def current_caller(request: Request) -> Caller:

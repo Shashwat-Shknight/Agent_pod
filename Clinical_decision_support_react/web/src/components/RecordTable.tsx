@@ -1,8 +1,11 @@
+import type { ReactNode } from "react";
 import type { RecordSummary } from "../api/types";
 import { Badge, Empty, STATUS_TONE } from "./ui";
 
-export function RecordTable({ rows, onOpen, empty = "No consultations yet.", showStage = true, selectedId }: {
+export function RecordTable({ rows, onOpen, empty = "No consultations yet.", showStage = true, selectedId, actions }: {
   rows: RecordSummary[]; onOpen: (row: RecordSummary) => void; empty?: string; showStage?: boolean; selectedId?: string;
+  /** Optional per-row buttons (clicks inside don't open the row). */
+  actions?: (row: RecordSummary) => ReactNode;
 }) {
   if (!rows.length) return <Empty>{empty}</Empty>;
   return (
@@ -17,6 +20,7 @@ export function RecordTable({ rows, onOpen, empty = "No consultations yet.", sho
             <th>Clinician</th>
             <th>Note</th>
             {showStage && <th>Stage</th>}
+            {actions && <th><span className="sr-only">Actions</span></th>}
           </tr>
         </thead>
         <tbody>
@@ -30,6 +34,7 @@ export function RecordTable({ rows, onOpen, empty = "No consultations yet.", sho
               <td>{row.doctor || "—"}</td>
               <td><Badge tone={STATUS_TONE[row.status] ?? "gray"}>{row.status === "Approved" ? "Signed" : "Draft"}</Badge></td>
               {showStage && <td><Badge tone={STATUS_TONE[row.stage] ?? "gray"}>{row.stage}</Badge></td>}
+              {actions && <td onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>{actions(row)}</td>}
             </tr>
           ))}
         </tbody>

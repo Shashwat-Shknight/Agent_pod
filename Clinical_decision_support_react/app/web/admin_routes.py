@@ -26,6 +26,7 @@ router = APIRouter(prefix="/api", tags=["web"])
 PAGES = {
     "dashboard": "Clinical Overview",
     "consultations": "Clinical Review",
+    "patients": "Clinical Review",
     "review": "Clinical Review",
     "knowledge": "Clinical Review",
     "coding": "Codes",
@@ -269,6 +270,34 @@ def update_user(username: str, body: UserUpdate, caller: Caller = Depends(requir
     if changes.get("active") is False or "role" in changes:
         SESSIONS.drop_user(username)  # deactivated or re-roled users sign in again with the new rights
     return {"users": users}
+
+
+@router.delete("/admin/users/{username}")
+def delete_user(username: str, caller: Caller = Depends(requires("Super Admin", "Edit"))):
+    """Delete an account. Its open work goes back to the unassigned queue; history keeps the username."""
+    if str(username).strip().lower() == caller.username:
+        raise ApiError(422, "self_lockout", "You cannot delete your own account.")
+    with store_transaction() as store:
+        try:
+            removed = ac.delete_user(store, username, caller.username)
+        except ValueError as error:
+            status = 404 if str(error).startswith("Unknown user") else 422
+            raise ApiError(status, "not_found" if status == 404 else "invalid_user", str(error)) from error
+        users = [_user_row(u) for u in store["users"]]
+    SESSIONS.drop_user(removed["username"])
+    released = 0
+    for record in records.list_records():
+        if record.get("assigned_to") != removed["username"] or record.get("bill_generated_at"):
+            continue
+
+        def release(rec, who=removed["username"]):
+            rec["assigned_to"] = None
+            rec.setdefault("assignment_history", []).append(
+                {"at": ac._stamp(), "from": who, "to": None, "by": caller.username, "reason": "Account deleted"})
+
+        records.mutate(record["id"], caller.username, None, release)
+        released += 1
+    return {"users": users, "released": released}
 
 
 class PasswordReset(BaseModel):

@@ -7,6 +7,7 @@ import { Banner, Loading } from "./components/ui";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Consultations = lazy(() => import("./pages/Consultations"));
+const Patients = lazy(() => import("./pages/Patients"));
 const NewConsultation = lazy(() => import("./pages/NewConsultation"));
 const Review = lazy(() => import("./pages/Review"));
 const Coding = lazy(() => import("./pages/Coding"));
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/" element={<Navigate to={home(user.pages)} replace />} />
           <Route path="/dashboard" element={<Guard page="dashboard"><Dashboard /></Guard>} />
           <Route path="/consultations" element={<Guard page="consultations"><Consultations /></Guard>} />
+          <Route path="/registry" element={<Guard page="patients"><Patients /></Guard>} />
           <Route path="/consultations/new" element={<Guard page="consultations"><NewConsultation /></Guard>} />
           <Route path="/consultations/:id" element={<Guard page="review"><Review /></Guard>} />
           <Route path="/coding" element={<Guard page="coding"><Coding /></Guard>} />

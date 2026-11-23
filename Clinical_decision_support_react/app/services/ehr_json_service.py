@@ -344,6 +344,39 @@ def add_patient_record(patient_id: str, sheet_name: str, record: dict[str, Any])
     return inserted
 
 
+def add_records_bulk(rows_by_sheet: dict[str, list[dict[str, Any]]]) -> dict[str, int]:
+    """Append many rows across sheets in ONE store write (seeding). Each row carries its own Patient_ID."""
+    counts: dict[str, int] = {}
+    with _STORE_LOCK:
+        store = _read_store()
+        for sheet_name, rows in rows_by_sheet.items():
+            target = _sheet_records(store, sheet_name)
+            headers = store["sheets"][sheet_name]["headers"]
+            target.extend(_row_for_headers(headers, row) for row in rows)
+            counts[sheet_name] = len(rows)
+        _write_store(store)
+    return counts
+
+
+def delete_patients(patient_ids: list[str]) -> int:
+    """Remove several patients and every chart row that belongs to them, in ONE store write."""
+    wanted = {str(patient_id) for patient_id in patient_ids}
+    removed = 0
+    with _STORE_LOCK:
+        store = _read_store()
+        for sheet_name, sheet in store["sheets"].items():
+            rows = sheet.get("records")
+            if not isinstance(rows, list):
+                continue
+            kept = [row for row in rows if str(_get_value(row, "Patient_ID", "patient_id")) not in wanted]
+            if sheet_name == "Patient_Master":
+                removed = len(rows) - len(kept)
+            sheet["records"] = kept
+        if removed or wanted:
+            _write_store(store)
+    return removed
+
+
 def export_patient_data(patient_id: str | None = None) -> dict[str, Any]:
     store = _read_store()
     if patient_id is None:

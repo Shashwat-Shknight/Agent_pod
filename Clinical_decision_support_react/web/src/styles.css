@@ -208,3 +208,10 @@ table.table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .meter { height: 6px; background: var(--gray-100); border-radius: 3px; overflow: hidden; flex: 1; }
 .meter span { display: block; height: 100%; background: var(--chart-1); }
 .mt { margin-top: 14px; }
+
+dl.grid { margin: 0 0 6px; }
+dl.grid dd { margin: 2px 0 0; }
+.btn.danger.sm:hover:not(:disabled), .btn.danger:hover:not(:disabled) { background: var(--rose-100); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.masked-note { display: grid; gap: 2px; padding: 8px 10px; margin-bottom: 10px; border-radius: 10px; background: var(--butter-100); color: var(--butter-ink); font-size: 12px; }
+.masked-note b { font-size: 12px; }

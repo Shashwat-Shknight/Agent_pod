@@ -38,6 +38,10 @@ CLINICAL_MODULES = (
     "Admin Dashboard",
     "Super Admin",
     "EHR Demo Data",
+    # PHI masking (app/domain/masking.py): View = sees the class unmasked
+    "PHI: Identity",
+    "PHI: Contact details",
+    "PHI: Clinical narrative",
 )
 # Screen code -> permission module name for the value-based care workspace.
 VBC_SCREENS = {
@@ -140,6 +144,21 @@ def _grant_clinical(role, permissions):
         permissions["Admin Dashboard"]["View"] = True
 
 
+# Minimum necessary (HIPAA): who sees each PHI class unmasked by default. Everyone else sees masked values.
+PHI_DEFAULTS = {
+    "PHI: Identity": ("Clinical Reviewer", "Physician / APP", "Coding Specialist", "RCM Analyst", "Operations Admin",
+                      "Care Manager", "Pharmacist", "Abstractor", "HEDIS Analyst", "HEDIS Lead"),
+    "PHI: Contact details": ("Clinical Reviewer", "Physician / APP", "RCM Analyst", "Care Manager"),
+    "PHI: Clinical narrative": ("Clinical Reviewer", "Physician / APP", "Coding Specialist", "Care Manager", "Pharmacist",
+                                "Abstractor"),
+}
+
+
+def _grant_phi(role, permissions):
+    for module, roles in PHI_DEFAULTS.items():
+        permissions[module]["View"] = role in roles
+
+
 def _grant_vbc(role, permissions):
     spec_role = ROLE_ALIASES.get(role, role)
     for screen, module in VBC_SCREENS.items():
@@ -178,6 +197,7 @@ def _role_permissions():
                 permissions[module] = {action: True for action in ACTIONS}
         else:
             _grant_clinical(role, permissions)
+            _grant_phi(role, permissions)
             _grant_vbc(role, permissions)
             _grant_poc(role, permissions)
             enforce_segregation(role, permissions)

@@ -24,3 +24,9 @@ def test_one_affirmed_mention_is_enough():
 
 def test_negation_does_not_cross_a_clause_break():
     assert get_detected_insights("No nausea. Diabetes is poorly controlled.") == ["Type 2 diabetes mellitus with hyperglycemia"]
+
+
+def test_risk_and_screening_language_is_not_a_diagnosis():
+    assert get_detected_insights("Impaired fasting glucose, at risk of diabetes.") == []
+    assert get_detected_insights("Screening for depression today. Exercise to prevent obesity.") == []
+    assert get_detected_insights("At risk for diabetes, but I have hypertension") == ["Hypertension"]

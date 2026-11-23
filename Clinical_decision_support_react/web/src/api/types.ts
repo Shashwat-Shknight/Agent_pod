@@ -53,6 +53,37 @@ export interface PatientRow {
   mrn: string;
   dob: string;
   sex: string;
+  consultations?: number;
+  city?: string;
+}
+
+export interface PatientList {
+  patients: PatientRow[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+/** Editable demographics (API field names). */
+export interface PatientFields {
+  first_name: string;
+  last_name: string;
+  dob: string;
+  sex: string;
+  mobile: string;
+  email: string;
+  street_address: string;
+  city: string;
+  state: string;
+  zip: string;
+  preferred_language: string;
+}
+
+export interface PatientDetail {
+  patient: PatientFields & { patient_id: string; mrn: string; name: string; status: string; etag: string };
+  consultations: RecordSummary[];
+  chart_rows: number;
+  permissions: { edit: boolean; delete: boolean; delete_reason: string; masked?: string[] };
 }
 
 export interface ChartContext {

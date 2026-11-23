@@ -29,6 +29,8 @@ function UsersTab() {
   const query = useQuery({ queryKey: ["users"], queryFn: () => api.get<UsersResponse>("/api/admin/users") });
   const [adding, setAdding] = useState(false);
   const [resetting, setResetting] = useState<UserRow | null>(null);
+  const [editing, setEditing] = useState<UserRow | null>(null);
+  const [deleting, setDeleting] = useState<UserRow | null>(null);
   const editable = can("Super Admin", "Edit");
   const update = useMutation({
     mutationFn: ({ username, changes }: { username: string; changes: Partial<UserRow> }) => api.patch<UsersResponse>(`/api/admin/users/${username}`, changes),
@@ -69,12 +71,14 @@ function UsersTab() {
                 {editable && (
                   <td className="row">
                     {u.locked && <button className="btn sm" onClick={() => unlock.mutate(u.username)}>Unlock</button>}
+                    <button className="btn sm" onClick={() => setEditing(u)}>Edit</button>
                     <button className="btn sm" onClick={() => setResetting(u)}>Reset password</button>
                     {u.username !== me?.username && (
                       <button className="btn sm" disabled={update.isPending} onClick={() => update.mutate({ username: u.username, changes: { active: !u.active } })}>
                         {u.active ? "Deactivate" : "Activate"}
                       </button>
                     )}
+                    {u.username !== me?.username && <button className="btn sm danger" onClick={() => setDeleting(u)}>Delete</button>}
                   </td>
                 )}
               </tr>
@@ -84,6 +88,8 @@ function UsersTab() {
       </div>
       {adding && <AddUser roles={query.data.roles} onClose={() => setAdding(false)} />}
       {resetting && <ResetPassword user={resetting} onClose={() => setResetting(null)} />}
+      {editing && <EditUser user={editing} onClose={() => setEditing(null)} />}
+      {deleting && <DeleteUser user={deleting} onClose={() => setDeleting(null)} />}
     </Card>
   );
 }
@@ -119,6 +125,58 @@ function AddUser({ roles, onClose }: { roles: string[]; onClose: () => void }) {
           <button className="btn primary" disabled={create.isPending || !form.username || !form.name || !form.password}>{create.isPending ? "Creating…" : "Create user"}</button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function EditUser({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({ name: user.name, email: user.email ?? "" });
+  const save = useMutation({
+    mutationFn: () => api.patch<UsersResponse>(`/api/admin/users/${user.username}`, form),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["users"], (old: UsersResponse | undefined) => old && { ...old, users: data.users });
+      toast("Saved", "ok");
+      onClose();
+    },
+  });
+  const submit = (e: FormEvent) => { e.preventDefault(); save.mutate(); };
+  return (
+    <Modal title={`Edit @${user.username}`} onClose={onClose}>
+      {save.isError && <Banner tone="error" title={errorMessage(save.error)} />}
+      <form onSubmit={submit}>
+        <div className="field"><label htmlFor="eu-name">Full name</label><input id="eu-name" className="input" autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+        <div className="field"><label htmlFor="eu-email">Email</label><input id="eu-email" className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+        <div className="row" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn primary" disabled={save.isPending || !form.name.trim()}>Save</button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function DeleteUser({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const remove = useMutation({
+    mutationFn: () => api.del<UsersResponse & { released: number }>(`/api/admin/users/${user.username}`),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["users"], (old: UsersResponse | undefined) => old && { ...old, users: data.users });
+      toast(`Deleted @${user.username}${data.released ? `; ${data.released} open item(s) returned to the unassigned queue` : ""}`, "ok");
+      onClose();
+    },
+  });
+  return (
+    <Modal title={`Delete @${user.username}?`} onClose={onClose}>
+      <p><b>{user.name}</b> · {user.role}</p>
+      <p className="muted small">The account is removed and signed out everywhere. Their open work returns to the unassigned queue; the audit trail keeps their name. To pause an account instead, use Deactivate.</p>
+      {remove.isError && <Banner tone="error" title={errorMessage(remove.error)} />}
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button className="btn" onClick={onClose}>Cancel</button>
+        <button className="btn danger" disabled={remove.isPending} onClick={() => remove.mutate()}>{remove.isPending ? "Deleting…" : "Delete account"}</button>
+      </div>
     </Modal>
   );
 }

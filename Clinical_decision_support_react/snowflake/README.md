@@ -23,6 +23,7 @@ FastAPI API  ──┘  (pooled, key-pair auth)│── BILLING   GENERATED_BIL
 | Schema changes | Versioned, checksummed migrations in `snowflake/migrations` (`V001__...sql`). Applied files cannot be edited — add a new version. |
 | Encounter writes | `CLINICAL.UPSERT_ENCOUNTER` stored procedure: one round trip, one transaction, skips unchanged records (SHA-256), appends a version to `ENCOUNTER_HISTORY`, refreshes transcript/AI/code child tables. |
 | Lossless storage | Each table keeps the full application object in a `VARIANT` column; hot fields are promoted to typed columns for querying. |
+| PHI masking | Dynamic Data Masking + tags (`GOVERNANCE` schema, V004/V005). `NUUCARE_APP`/`NUUCARE_OWNER` see clear data; every other role (incl. `NUUCARE_READONLY`, ACCOUNTADMIN in Snowsight) sees pseudonyms and redactions. Requires Enterprise edition. |
 | Audit | `SECURITY.AUDIT_LOG` keeps every event (the in-app view shows the latest 2,000). Encounter history is append-only. SOAP approvals are versioned. |
 | Failure mode | If Snowflake is unreachable the UI shows an error and the API returns HTTP 503. Data is never silently written to local disk instead. |
 | Documents | Bill and claim PDFs are rendered in memory (ReportLab, reproducible bytes) and stored in `BILLING.BILL_DOCUMENTS`; identical PDFs are stored once. |

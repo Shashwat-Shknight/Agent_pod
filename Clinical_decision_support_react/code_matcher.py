@@ -295,6 +295,14 @@ COMMON_ICD10_FALLBACKS = {
         "code": "I10",
         "description": "Essential (primary) hypertension",
     },
+    # Common primary-care problems the fuzzy matcher left unmatched. Unspecified codes on purpose: the coder
+    # (and the CDI flag on "unspecified") refines them; no subtype is inferred. Smoking and alcohol are NOT here:
+    # "smoking history" vs current use, and social drinking, cannot be told apart from the keyword alone.
+    "depression": {"code": "F32.A", "description": "Depression, unspecified"},
+    "anxiety": {"code": "F41.9", "description": "Anxiety disorder, unspecified"},
+    "osteoarthritis": {"code": "M19.90", "description": "Unspecified osteoarthritis, unspecified site"},
+    "obesity": {"code": "E66.9", "description": "Obesity, unspecified"},
+    "fatigue": {"code": "R53.83", "description": "Other fatigue"},
 }
 
 RUNTIME_ALIASES = {

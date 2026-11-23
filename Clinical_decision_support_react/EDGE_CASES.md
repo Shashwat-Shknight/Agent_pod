@@ -57,3 +57,30 @@ Each item names the problem in the Streamlit version, what happens now, and the 
 | 34 | Closing the tab lost an unsaved SOAP edit or scribe draft | The browser asks before leaving | `Review.tsx`, `NewConsultation.tsx` |
 | 35 | Transcripts of any size were sent to the LLM | Minimum 40 and maximum 60,000 characters, with clear messages | `test_scribe_rejects_empty_and_bad_audio` |
 | 36 | New patient registration accepted future dates of birth | Validated on the server (past date, after 1900) | `test_validation_errors_use_the_common_envelope` |
+
+## CRUD (create, read, update, delete)
+
+| # | Problem before | Now | Test |
+|---|---|---|---|
+| 37 | Patients could be created but never corrected or removed from the app | Edit demographics and delete through the API and the Patients screen | `test_patient_full_crud_with_duplicate_and_stale_checks` |
+| 38 | Registering the same person twice silently made a second chart | Same name + date of birth returns 409 `possible_duplicate`; "register anyway" is explicit | same |
+| 39 | Two people editing one patient: last save wins | The edit carries an etag of the row it was based on; a mismatch is 409 `stale_record` | same |
+| 40 | Deleting a patient would orphan their consultations | Refused (409 `patient_in_use`) while any consultation points at the patient | `test_patient_with_consultations_or_history_cannot_be_deleted_by_a_clinician` |
+| 41 | Any clinician could erase a patient's whole chart history | Only a role with EHR Demo Data · Edit can; a clinician can delete only a fresh registration with no chart rows | same |
+| 42 | Renaming a patient left the old name on their consultations | Linked consultation headers (name, DOB, MRN) are updated with the EHR | `test_renaming_a_patient_updates_their_consultation_headers` |
+| 43 | Abandoned or mistaken drafts could not be removed | Draft consultations can be deleted (version-checked) by their author or an admin; the EHR encounter is kept as *Cancelled*, the note as *Entered in Error* | `test_draft_consultation_delete_rules` |
+| 44 | Nothing stopped deleting a legal record | Signed (or billed) consultations are never deleted: 409 `note_signed` | `test_signed_consultation_cannot_be_deleted` |
+| 45 | Users could only be deactivated, never removed; a deleted user's work would be stranded | Delete account: not yourself, not the last Super Admin; open work returns to the unassigned queue and sessions end | `test_user_delete_rules_and_released_work`, `test_last_super_admin_cannot_be_deleted` |
+| 46 | "At risk of diabetes" or "screening for depression" became a diagnosis code | Risk, screening and prevention wording counts as not-a-diagnosis | `test_risk_and_screening_language_is_not_a_diagnosis` |
+| 47 | Depression, anxiety, osteoarthritis, obesity and fatigue got no ICD-10 code at all | Deterministic unspecified codes (F32.A, F41.9, M19.90, E66.9, R53.83) for the coder to refine; smoking and alcohol deliberately left for review | `test_seed_fills_every_stage…` (synthetic scenarios) |
+
+## PHI masking
+
+| # | Problem before | Now | Test |
+|---|---|---|---|
+| 48 | Every role saw every patient detail (names, DOB, phone, conversations) | Role-based masking of three PHI classes on every API answer and bill PDF; tunable in the role matrix | `test_masking.py` |
+| 49 | Anyone with the reporting role (or ACCOUNTADMIN in Snowsight) read clear PHI straight from Snowflake | Snowflake masking policies and PHI tags on all PHI columns; only the app and owner roles see clear data | verified live: `NUUCARE_READONLY` sees `PSN-…`, `1968`, `*****0015`, `[REDACTED]` |
+| 50 | The reporting role could read password hashes in `SECURITY.APP_USERS` | `password_hash` removed from `USER_JSON` for every non-app role | same |
+| 51 | A masked value could be saved back over the real one | Writes to a masked class are refused (403 `phi_masked`); the UI locks those fields | `test_coder_sees_contact_masked…` |
+| 52 | Searching by name would reveal who exists even with names masked | Identity-masked roles search by patient ID only | `test_identity_masked_role_cannot_search…` |
+| 53 | The API "summary" object and the SOAP "summary" text share a key | Objects under text keys are walked, never erased (same rule in Python and Snowflake) | `test_objects_under_text_keys_are_walked_not_erased` |

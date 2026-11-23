@@ -22,6 +22,14 @@ copy ..\Clinical_decision_support\.env .env
 
 Open **http://127.0.0.1:8000**. Sign in with the same users as before. Done.
 
+Want demo data in every screen? (optional, about 10 minutes on Snowflake)
+
+```powershell
+.venv\Scripts\python -m app.scripts.seed_synthetic --password Demo2026x
+```
+
+Then sign in as `syn.doctor`, `syn.coder` or `syn.rcm` with that password. Remove it later with `--remove`.
+
 ## Fresh machine
 
 ### 1. Clone and install (about 3 minutes)

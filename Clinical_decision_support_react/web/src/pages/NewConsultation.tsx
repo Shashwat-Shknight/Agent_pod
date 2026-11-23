@@ -1,10 +1,11 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api, errorMessage, TIMEOUTS } from "../api/client";
 import type { PatientContext, PatientRow, ScribeResult } from "../api/types";
+import { PatientForm } from "../components/PatientForm";
 import { useToast } from "../components/toast";
-import { Badge, Banner, Card, ErrorState, Modal, PageHead, Spinner } from "../components/ui";
+import { Badge, Banner, Card, ErrorState, PageHead, Spinner } from "../components/ui";
 import { MAX_SECONDS, microphoneSupported, startWavCapture, WavCapture } from "../lib/wav";
 
 const ENCOUNTER_TYPES = ["Office Visit", "Outpatient", "Telehealth", "Follow-up", "Inpatient"];
@@ -46,45 +47,11 @@ function PatientStep({ selected, onSelect }: { selected: PatientRow | null; onSe
         </table>
         {patients.data && !patients.data.patients.length && <p className="muted small">No patient matches “{term}”. Register them instead.</p>}
       </div>
-      {registering && <RegisterPatient onClose={() => setRegistering(false)} onCreated={(p) => { setRegistering(false); onSelect(p); }} />}
+      {registering && <PatientForm mode="create" onClose={() => setRegistering(false)} onSaved={(p) => { setRegistering(false); onSelect(p); }} />}
     </Card>
   );
 }
 
-function RegisterPatient({ onClose, onCreated }: { onClose: () => void; onCreated: (p: PatientRow) => void }) {
-  const queryClient = useQueryClient();
-  const [form, setForm] = useState({ first_name: "", last_name: "", dob: "", sex: "Other" });
-  const create = useMutation({
-    mutationFn: () => api.post<{ patient_id: string; mrn: string }>("/api/patients", form),
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: ["patients"] });
-      onCreated({ patient_id: data.patient_id, mrn: data.mrn, name: `${form.first_name} ${form.last_name}`, dob: form.dob, sex: form.sex });
-    },
-  });
-  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [key]: e.target.value });
-  const submit = (e: FormEvent) => { e.preventDefault(); create.mutate(); };
-  return (
-    <Modal title="Register a new EHR patient" onClose={onClose}>
-      {create.isError && <Banner tone="error" title={errorMessage(create.error)} />}
-      <form onSubmit={submit}>
-        <div className="grid grid-2">
-          <div className="field"><label>First name</label><input className="input" value={form.first_name} onChange={set("first_name")} autoFocus /></div>
-          <div className="field"><label>Last name</label><input className="input" value={form.last_name} onChange={set("last_name")} /></div>
-          <div className="field"><label>Date of birth</label><input className="input" type="date" max={new Date().toISOString().slice(0, 10)} value={form.dob} onChange={set("dob")} /></div>
-          <div className="field"><label>Sex at birth</label>
-            <select className="input" value={form.sex} onChange={set("sex")}><option>Male</option><option>Female</option><option>Other</option></select>
-          </div>
-        </div>
-        <div className="row" style={{ justifyContent: "flex-end" }}>
-          <button type="button" className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn primary" disabled={create.isPending || !form.first_name.trim() || !form.last_name.trim() || !form.dob}>
-            {create.isPending ? "Registering…" : "Register patient"}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
 
 function PatientContextStrip({ patientId }: { patientId: string }) {
   const context = useQuery({ queryKey: ["patient-context", patientId], queryFn: () => api.get<PatientContext>(`/api/patients/${patientId}/context`) });

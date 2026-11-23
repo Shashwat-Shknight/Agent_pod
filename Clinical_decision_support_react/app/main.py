@@ -4,11 +4,12 @@ One process, one port: http://127.0.0.1:8000 serves both the UI and the API, so 
 second server to start. During UI development, Vite (port 5173) proxies /api to this server.
 """
 
+import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app import vbc_poc
@@ -25,6 +26,29 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 API_PREFIXES = {"api", "docs", "redoc", "openapi.json", "vbc", "encounters", "codes", "ehr", "patients", "reference",
                 "analyze", "retrieve", "health", "dev"}
 CLIENT_HEADER = "x-nuucare-client"
+
+
+# Responses about the signed-in user and administration carry no patient data and are never masked.
+UNMASKED_PATHS = ("/api/auth/", "/api/me", "/api/admin/")
+
+
+async def _mask_phi(request: Request, response):
+    """Role-based dynamic masking of PHI in every JSON answer (app/domain/masking.py). Storage is never changed."""
+    caller = getattr(request.state, "caller", None)
+    if caller is None or request.url.path.startswith(UNMASKED_PATHS):
+        return response
+    policy = caller.masking
+    if not policy.active or "application/json" not in response.headers.get("content-type", ""):
+        return response
+    body = b"".join([chunk async for chunk in response.body_iterator])
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        return Response(body, status_code=response.status_code, headers=dict(response.headers))
+    headers = {k: v for k, v in response.headers.items() if k.lower() != "content-length"}
+    masked = JSONResponse(policy.apply(payload), status_code=response.status_code, headers=headers)
+    masked.headers["X-NuuCare-Masked"] = policy.header()
+    return masked
 
 
 @asynccontextmanager
@@ -53,6 +77,7 @@ def create_app() -> FastAPI:
                     "error": {"code": "csrf_blocked", "message": "Request blocked: missing client header."},
                     "detail": "Request blocked: missing client header."})
         response = await call_next(request)
+        response = await _mask_phi(request, response)
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "same-origin")

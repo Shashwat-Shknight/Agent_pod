@@ -332,6 +332,9 @@ def bill_pdf(record_id: str, caller: Caller = Depends(requires("RCM Workspace"))
         "gross_total": state["total"], "held_lines": [{"code": r["code"], "reason": r["reason"]} for r in state["held"]],
         "notice": BILLING_NOTICE,
     }
+    # PDFs bypass the JSON masking middleware: apply the viewer's policy before rendering.
+    policy = caller.masking
+    export, record = policy.apply(export), policy.apply(record)
     content = bill_pdf_bytes(export, record)
     name = f"bill_{export['encounter_id']}.pdf"
     archive_pdf("DRAFT_BILL", name, content, actor=caller.username, encounter_id=str(export["encounter_id"] or ""),

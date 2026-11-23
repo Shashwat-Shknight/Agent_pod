@@ -121,7 +121,8 @@ def get_detected_insights(transcript_text):
 # A mention is negated when a cue sits in the few words before it, in the same clause
 # ("denies chest pain", "no fever or cough"). "History of" is NOT a negation: chronic conditions are active.
 _NEGATION_CUE = re.compile(
-    r"\b(?:no|not|denies|denied|deny|without|negative for|free of|never had|rules? out|ruled out|family history of|(?:mother|father|sister|brother|sibling|grandmother|grandfather)s?\W+(?:has|had))\b"
+    r"\b(?:no|not|denies|denied|deny|without|negative for|free of|never had|rules? out|ruled out|family history of|"
+    r"at risk (?:of|for)|risk of|screening for|to prevent|(?:mother|father|sister|brother|sibling|grandmother|grandfather)s?\W+(?:has|had))\b"
     r"(?:\W+\w+){0,4}\W*$"
 )
 _CLAUSE_BREAK = re.compile(r"[.;:!?\n]|\bbut\b|\bhowever\b")
