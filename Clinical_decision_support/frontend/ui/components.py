@@ -258,7 +258,7 @@ def render_patient_table(records):
     current_page = st.session_state[state_key]
     current_records = records[(current_page - 1) * per_page : current_page * per_page]
     st.markdown(
-        '<div class="patient-table-header"><span>Patient</span><span>ID</span><span>Doctor / assignee</span>'
+        '<div class="patient-table-header"><span>Patient</span><span>MRN / Encounter</span><span>Doctor / assignee</span>'
         "<span>Date</span><span>Note</span><span>Action</span></div>",
         unsafe_allow_html=True,
     )
@@ -268,7 +268,12 @@ def render_patient_table(records):
             f'<div class="nc-patient"><div class="nc-initials">{escape(initials(record.get("name")))}</div><div><b>{escape(record.get("name", ""))}</b><small>{escape(str(record.get("age", "")))}y · {escape(record.get("gender", ""))}</small></div></div>',
             unsafe_allow_html=True,
         )
-        columns[1].markdown(f'<span class="table-meta">{escape(record.get("id", ""))}</span>', unsafe_allow_html=True)
+        encounter_id = record.get("ehr_encounter_id") or record.get("id", "")
+        columns[1].markdown(
+            f'<div class="table-two-line"><span class="table-meta">{escape(record.get("mrn") or "MRN pending")}</span>'
+            f"<small>{escape(encounter_id)}</small></div>",
+            unsafe_allow_html=True,
+        )
         assignee = record.get("assigned_to")
         assignee_text = f"→ {user_label(assignee)}" if assignee else "→ Unassigned queue"
         if record.get("rerouted_from"):
@@ -326,10 +331,12 @@ def render_transcript(record, read_only=False):
 
 
 def record_subtitle(record):
+    encounter_id = record.get("ehr_encounter_id") or ""
     parts = [
         record.get("name", ""),
-        record.get("id", ""),
-        record.get("ehr_encounter_id") or "",
+        record.get("mrn") or "",
+        encounter_id,
+        record.get("id", "") if record.get("id") != encounter_id else "",
         record.get("doctor", ""),
         format_date(record.get("date"), ""),
     ]

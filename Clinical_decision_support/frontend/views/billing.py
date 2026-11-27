@@ -5,8 +5,11 @@ from datetime import datetime
 from html import escape
 
 import pandas as pd
+import requests
 import streamlit as st
 
+from frontend import diagnostics as dx
+from frontend import rcm, rcm_service
 from frontend.claim_generation_page import build_ambient_bill, register_generated_bill
 from frontend.clinical_text import best_excerpt
 from frontend.coding_validation import summarize as summarize_checks
@@ -29,7 +32,7 @@ from frontend.ui.components import (
     render_html_table,
     render_tiles,
 )
-from frontend.ui.data import record_chart, record_patient_id
+from frontend.ui.data import backend_error_message, record_chart, record_patient_id, refresh_ehr_cache
 from frontend.ui.shell import render_page
 from frontend.ui.state import can, current_user, go_to, log_action, open_record, save_record
 from frontend.views.coding import (
@@ -59,20 +62,53 @@ def rcm_exceptions(post_checks, unpriced):
     return exceptions
 
 
+HELD_STATES = {"BLOCKED", "UNVERIFIED", "PENDING", "HELD"}
+_ORDER_STATE = {"BILLABLE": ("BILLABLE", "green"), "PENDING": ("PENDING", "amber"), "HELD": ("HELD", "red")}
+
+
+def order_guardrail_rows(record):
+    """Diagnostic orders on the encounter: the order and its result are the performed evidence."""
+    rows = []
+    for line in dx.billing_lines(record):
+        guardrail, tone = _ORDER_STATE[line["state"]]
+        order = next((item for item in record.get("diagnostic_orders") or [] if item.get("order_id") == line["order_id"]), {})
+        rows.append({
+            "candidate": {
+                "CPT/HCPCS Code": line["code"],
+                "Matched Procedure/Service": line["service"],
+                "Extracted Procedure": line["service"],
+                "source": "diagnostic_order",
+            },
+            "code": line["code"],
+            "service": line["service"],
+            "order": order.get("status") or ("Performed" if line["code"] == dx.VENIPUNCTURE_CPT else "—"),
+            "evidence": line["reason"],
+            "documentation": f"Order {line['order_id']}" if line["order_id"] else "Specimen collection",
+            "guardrail": guardrail,
+            "tone": tone,
+            "reason": line["reason"],
+            "overridden": False,
+            "overridable": False,
+            "order_line": line,
+        })
+    return rows
+
+
 def billing_guardrail_rows(record):
     """Classify each CPT candidate as billable/blocked using performed-status evidence."""
     cpt_results = list(encounter_code_results(record).get("cpt") or [])
     documentation = record_documentation(record)
     decisions = record.get("code_decisions") or {}
     note_text = str(record.get("summary") or "").lower()
-    rows = []
+    rows = order_guardrail_rows(record)
+    ordered_codes = {row["code"] for row in rows}
     for candidate in cpt_results:
         if not isinstance(candidate, dict):
             continue
         code = str(candidate.get("CPT/HCPCS Code") or "").strip()
         term = str(candidate.get("Extracted Procedure") or "")
-        if not code:
-            continue
+        if not code or code in ordered_codes:
+            continue  # an order for the same test is the authoritative evidence
         status_procedure, status_documentation = _procedure_status_inputs(term, documentation)
         procedure_status = (
             classify_procedure_status(status_procedure, status_documentation) if classify_procedure_status else "unknown"
@@ -161,7 +197,7 @@ def _billing_status(record):
         return "Bill drafted", "green"
     if not rows:
         return "Not coded", "gray"
-    blocked = sum(row["guardrail"] in {"BLOCKED", "UNVERIFIED"} for row in rows)
+    blocked = sum(row["guardrail"] in HELD_STATES for row in rows)
     if blocked:
         return f"{blocked} line{'s' if blocked > 1 else ''} held", "red"
     if record.get("status") != "Approved":
@@ -317,6 +353,109 @@ def _render_encounter_list(patient_records, chart, selected_id):
             cols[6].markdown('<span class="nc-meta">EHR history</span>', unsafe_allow_html=True)
 
 
+@st.cache_data(ttl=30, show_spinner=False)
+def _benefit_rows():
+    return rcm_service.benefit_rows()
+
+
+def _carc_badges(codes):
+    tones = {"CO-45": "gray", "PR-1": "amber", "PR-2": "amber", "PR-3": "blue", "CO-197": "red", "CO-50": "red", "CO-27": "red"}
+    return " ".join(
+        f'<span title="{escape(rcm.CARC_TEXT.get(code, code))}">{badge(code, tones.get(code, "gray"))}</span>' for code in codes
+    )
+
+
+def _money(value):
+    return f"${value:,.2f}"
+
+
+def _cost_share_detail(line):
+    parts = []
+    if line["copay"]:
+        parts.append(f"copay {_money(line['copay'])}")
+    if line["deductible"]:
+        parts.append(f"deductible {_money(line['deductible'])}")
+    if line["coinsurance"]:
+        parts.append(f"coins {_money(line['coinsurance'])}")
+    return f"<br><small>{' + '.join(parts)}</small>" if parts else ""
+
+
+def _render_expected_reimbursement(record, benefits, expected, collect_key):
+    """What the payer should allow and pay, and what the patient owes - before the claim is sent."""
+    with st.container(border=True):
+        eligible = benefits["eligibility_status"] == "Active" or benefits["payer_class"] == "Self-pay"
+        card_title(
+            "Eligibility & expected reimbursement",
+            f"{benefits['payer']} · {benefits['plan_type'] or benefits['payer_class']} · {benefits['contract']}",
+            trailing=badge(f"Eligibility {benefits['eligibility_status']}", "green" if eligible else "red"),
+        )
+        st.caption(
+            f"{benefits['eligibility_detail']} Benefits as a 270/271 check returns them; accumulators come from this "
+            "member's processed claims. Amounts are estimates from synthetic contract terms."
+        )
+        render_tiles([
+            ("Member ID", benefits["member_id"] or "—"),
+            ("Office copay", _money(benefits["copay"])),
+            ("Deductible left", f"{_money(benefits['remaining_deductible'])} of ${benefits['annual_deductible']:,.0f}"),
+            ("Coinsurance", f"{benefits['coinsurance']:.0%}"),
+            ("Out-of-pocket left", "No cap" if benefits["oop_remaining"] is None else _money(benefits["oop_remaining"])),
+            ("Contract", f"{benefits['allowed_rate']:.1%} of charges"),
+        ])
+        if not expected:
+            st.caption("Expected reimbursement appears once at least one priced line is billable.")
+            return
+        render_html_table(
+            ["CPT", "Service", "Charge", "Allowed", "Contractual adj.", "Patient", "Payer expected", "Adjustment codes"],
+            [
+                [
+                    f"<code>{escape(line['code'])}</code>",
+                    escape(line["description"])
+                    + (f"<br><small>Auth {escape(line['auth_number'])}</small>" if line.get("auth_number") else ""),
+                    _money(line["charge"]),
+                    _money(line["allowed"]),
+                    _money(line["contractual"] + line["denied"]),
+                    _money(line["patient"]) + _cost_share_detail(line),
+                    _money(line["payer"]),
+                    _carc_badges(line["carc"]),
+                ]
+                for line in expected["lines"]
+            ],
+            ["blocked" if line["denied"] else "" for line in expected["lines"]],
+        )
+        totals = expected["totals"]
+        render_tiles([
+            ("Charges", _money(totals["charge"])),
+            ("Allowed", _money(totals["allowed"])),
+            ("Contractual adjustment", _money(totals["contractual"])),
+            ("Would deny", _money(totals["denied"])),
+            ("Patient responsibility", _money(totals["patient"])),
+            ("Payer expected", _money(totals["payer"])),
+        ])
+        if expected["denied_lines"]:
+            reasons = sorted({code for line in expected["denied_lines"] for code in line["carc"]})
+            render_banner(
+                f"{len(expected['denied_lines'])} line(s) would be denied: " + ", ".join(reasons),
+                " · ".join(f"{code}: {rcm.CARC_TEXT.get(code, '')}" for code in reasons)
+                + ". Fix the authorization, diagnosis or coverage before sending, or the line goes to the denial work queue.",
+                tone="danger",
+                icon="&#9888;",
+            )
+        account = record.get("rcm_account") or {}
+        if account:
+            st.caption(f"Patient account {account.get('account_id')} · {account.get('status')} · saved to the EHR (Patient_Balance).")
+        if collect_key not in st.session_state:
+            st.session_state[collect_key] = float(min(benefits["copay"], totals["patient"]))
+        st.number_input(
+            "Collected at check-out (point-of-service payment)",
+            min_value=0.0,
+            max_value=float(max(totals["patient"], st.session_state[collect_key], 0.0)),
+            step=5.0,
+            key=collect_key,
+            help="Usually the office copay. Saved on the patient account as Patient_Paid_At_Discharge when you send to RCM.",
+            disabled=not can("RCM Workspace", "Edit"),
+        )
+
+
 def show_billing():
     render_page("billing")
     records = st.session_state.records
@@ -334,7 +473,7 @@ def show_billing():
 
     guardrail = billing_guardrail_rows(record)
     billable = [row for row in guardrail if row["guardrail"] == "BILLABLE"]
-    held = [row for row in guardrail if row["guardrail"] in {"BLOCKED", "UNVERIFIED"}]
+    held = [row for row in guardrail if row["guardrail"] in HELD_STATES]
     encounter_type = "IPD" if str(record.get("ehr_encounter_type", "")).lower().startswith("inp") else "OPD"
     attest_key = f"billing_attest_{record.get('id')}"
     bill_rows, bill_total, unpriced = (
@@ -359,6 +498,19 @@ def show_billing():
     # for the RCM work queue, so a coder-attested bill always reaches RCM.
     priced_rows = [row for row in bill_rows if row.get("Pricing Status") == "Priced"]
     exceptions = rcm_exceptions(post_checks, unpriced)
+    # Eligibility, benefits and expected adjudication for the billable lines (payer order of cost share).
+    rcm_chart = record_chart(record)
+    dx_codes = rcm_service.diagnosis_codes(record)
+    order_lines = [row["order_line"] for row in guardrail if row.get("order_line")]
+    lines_for_claim = rcm_service.claim_lines(priced_rows, order_lines, dx_codes)
+    benefits = rcm_service.encounter_benefits(record, rcm_chart, _benefit_rows())
+    expected = rcm_service.adjudicate_lines(lines_for_claim, benefits, dx_codes) if lines_for_claim else None
+    collect_key = f"billing_collect_{record.get('id')}"
+    if expected and expected["denied_lines"]:
+        exceptions = exceptions + [
+            {"check": f"Expected denial {', '.join(line['carc'])}", "detail": f"CPT {line['code']} {line['description']}"}
+            for line in expected["denied_lines"]
+        ]
 
     actions = page_header(
         "BILLING & RCM",
@@ -409,9 +561,34 @@ def show_billing():
             "unpriced_codes": unpriced,
             "rcm_exceptions": exceptions,
         }
+        coverage = rcm_service.primary_coverage(rcm_chart) if rcm_chart else {}
+        estimate.update({
+            "claim_lines": lines_for_claim,
+            "diagnosis_codes": dx_codes,
+            "mrn": record.get("mrn") or "",
+            "coverage": {key: coverage.get(key) for key in (
+                "Payer_Name", "Plan_Type", "Member_ID", "Group_Number", "Relationship_to_Subscriber")},
+            "expected": {"totals": expected["totals"], "status": expected["status"]} if expected else None,
+        })
         st.session_state.estimated_hospital_bill = estimate
         # Saved with the encounter so Claim Generation finds it in any later session.
         record["bill_estimate"] = estimate
+        if expected:
+            try:
+                account = rcm_service.save_send_to_rcm(
+                    record, rcm_chart, benefits, expected,
+                    collected_at_visit=float(st.session_state.get(collect_key) or 0.0),
+                )
+                record["rcm_account"] = {
+                    "account_id": account["Account_ID"],
+                    "status": account["Claim_Status"],
+                    "patient_responsibility": account["Patient_Responsibility"],
+                    "payer_expected": account["Payer_Expected_Payment"],
+                }
+            except (RuntimeError, requests.exceptions.RequestException, ValueError) as error:
+                exceptions.append({"check": "Patient account", "detail": f"Not saved to the EHR: {backend_error_message(error)}"})
+            _benefit_rows.clear()
+            refresh_ehr_cache()
         bill = build_ambient_bill(record, estimate, encounter_code_results(record))
         bill["rcm_exceptions"] = exceptions
         register_generated_bill(bill, source=encounter_type)
@@ -610,6 +787,7 @@ def show_billing():
                     icon="&#9888;",
                 )
             st.caption(BILLING_NOTICE)
+        _render_expected_reimbursement(record, benefits, expected, collect_key)
         _render_archived_bills(record)
 
 

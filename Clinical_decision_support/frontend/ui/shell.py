@@ -41,6 +41,7 @@ CLINICAL_NAV = (
         (
             ("ipd_billing", "IPD Billing", ":material/local_hospital:"),
             ("claim_generation", "Claim Generation", ":material/request_quote:"),
+            ("rcm_ar", "Patient A/R", ":material/account_balance_wallet:"),
         ),
     ),
     (
@@ -136,6 +137,7 @@ TOP_NAV_GROUP = {
     "billing": "codes",
     "ipd_billing": "codes",
     "claim_generation": "codes",
+    "rcm_ar": "codes",
     "prior_auth": "prior_auth",
     "admin_dashboard": "admin_dashboard",
     "super_admin": "admin_dashboard",

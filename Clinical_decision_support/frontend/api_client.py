@@ -113,6 +113,15 @@ class HealthcareApiClient:
     def replace_patient_records(self, patient_id: str, sheet_name: str, records: list[dict]) -> list[dict]:
         return self._request("PUT", f"/patients/{patient_id}/records/{sheet_name}", json_body={"records": records})
 
+    def upsert_patient_records(self, patient_id: str, sheet_name: str, records: list[dict], key: str) -> list[dict]:
+        response = self._request(
+            "POST", f"/patients/{patient_id}/records/{sheet_name}/upsert", json_body={"key": key, "records": records}
+        )
+        return response.get("records", [])
+
+    def get_sheet(self, sheet_name: str) -> dict:
+        return self._request("GET", f"/ehr/sheets/{sheet_name}")
+
     def delete_patient(self, patient_id: str) -> dict:
         return self._request("DELETE", f"/patients/{patient_id}")
 

@@ -4,6 +4,8 @@
 
 A local clinical documentation and decision-support prototype. The application records or accepts a clinical conversation, creates a structured encounter note with an LLM, retrieves relevant guidance from a local PDF knowledge base, and generates clinical decision-support recommendations.
 
+> **Diagnostics, prior authorization and revenue cycle:** see [RCM_DIAGNOSTICS.md](RCM_DIAGNOSTICS.md) for diagnostic orders the doctor did not say aloud, background prior authorization, MRN / encounter linking, and the eligibility → adjudication → 835 → patient A/R flow.
+
 > This is an educational prototype. It is not a medical device and must not replace a licensed clinician, emergency services, local protocols, or professional clinical judgment.
 
 ## What The Application Does

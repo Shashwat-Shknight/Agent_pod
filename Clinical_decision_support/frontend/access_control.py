@@ -62,6 +62,7 @@ PAGE_MODULES = {
     "codes": "Codes",
     "billing": "RCM Workspace",
     "claim_generation": "RCM Workspace",
+    "rcm_ar": "RCM Workspace",
     "prior_auth": "RCM Workspace",
     "ipd_billing": "IPD Billing",
     "admin_dashboard": "Admin Dashboard",

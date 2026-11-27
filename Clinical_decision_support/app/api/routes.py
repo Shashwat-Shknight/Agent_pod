@@ -34,8 +34,10 @@ from app.services.ehr_json_service import (
     list_bills,
     list_patient_records,
     list_patients,
+    list_sheet,
     replace_patient_records,
     update_patient,
+    upsert_patient_records,
 )
 from cpt_coder import get_cpt_candidate_sets, get_cpt_codes, infer_documented_procedures
 from icd10_coder import get_icd10_codes
@@ -346,6 +348,23 @@ def create_patient_sheet_record(patient_id: str, sheet_name: str, payload: dict[
     if not isinstance(payload, dict):
         raise HTTPException(status_code=400, detail="Record payload must be a JSON object.")
     return _ehr_call(add_patient_record, patient_id, sheet_name, payload)
+
+
+@router.post("/patients/{patient_id}/records/{sheet_name}/upsert", tags=["ehr"])
+def upsert_patient_sheet_records(patient_id: str, sheet_name: str, payload: dict[str, Any]):
+    """Insert or update a patient's rows (orders, prior auths, patient accounts) matched on a key column."""
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Expected a JSON object with 'key' and 'records'.")
+    records = payload.get("records")
+    if not isinstance(records, list) or any(not isinstance(item, dict) for item in records):
+        raise HTTPException(status_code=400, detail="Records must be a list of JSON objects.")
+    return {"records": _ehr_call(upsert_patient_records, patient_id, sheet_name, records, str(payload.get("key") or ""))}
+
+
+@router.get("/ehr/sheets/{sheet_name}", tags=["ehr"])
+def get_ehr_sheet(sheet_name: str):
+    """Every row of one sheet across patients, for population worklists such as patient A/R."""
+    return _ehr_call(list_sheet, sheet_name)
 
 
 @router.get("/ehr/bills", tags=["ehr"])

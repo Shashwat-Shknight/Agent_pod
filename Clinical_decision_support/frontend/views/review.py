@@ -52,6 +52,7 @@ from frontend.ui.state import (
 )
 from frontend.views.consultation import update_ehr_clinical_note
 from frontend.views.ocr_widgets import render_document_ocr
+from frontend.views.orders_panel import render_diagnostic_orders
 
 
 def _log_history(record, action):
@@ -299,6 +300,7 @@ def _review_step_cds(record, is_approved, chart):
                 st.dataframe(
                     pd.DataFrame(history).rename(columns={"at": "When", "action": "Event"}), hide_index=True, width="stretch"
                 )
+        render_diagnostic_orders(record, chart, is_approved)
     with side_col:
         plan_text = f"{recommendation_text}\n{st.session_state.edit_summary}"
         with st.container(border=True):

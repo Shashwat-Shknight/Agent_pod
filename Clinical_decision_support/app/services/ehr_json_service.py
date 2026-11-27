@@ -217,6 +217,72 @@ def _new_patient_id(records: list[dict[str, Any]]) -> str:
     return f"P{max(numbers, default=100000) + 1:06d}"
 
 
+# Hospital-style identifiers. They are assigned here, under the store lock, so they are unique and
+# sequential no matter which screen creates the row: sheet -> (column, prefix, digits, first number).
+IDENTIFIER_FORMATS = {
+    "Encounters": ("Encounter_ID", "ENC", 9, 700100001),
+    "Orders_Procedures": ("Order_ID", "ORD", 8, 30000001),
+    "Labs": ("Lab_ID", "LAB", 8, 40000001),
+    "Prior_Authorizations": ("PA_ID", "PA", 8, 50000001),
+}
+_SHEET_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{1,63}$")
+
+
+def _next_number(values: Any, prefix: str, digits: int, start: int) -> str:
+    pattern = re.compile(rf"^{re.escape(prefix)}(\d{{{digits}}})$")
+    numbers = [int(match.group(1)) for value in values if (match := pattern.match(str(value or "").strip().upper()))]
+    return f"{prefix}{max(numbers, default=start - 1) + 1:0{digits}d}"
+
+
+def next_identifier(store: dict[str, Any], sheet_name: str) -> str:
+    """Next ID for a sheet that has a hospital-style identifier (ENC700100001, ORD30000001, ...)."""
+    column, prefix, digits, start = IDENTIFIER_FORMATS[sheet_name]
+    sheet = store.get("sheets", {}).get(sheet_name) or {}
+    rows = sheet.get("records") or []
+    return _next_number((_get_value(row, column) for row in rows if isinstance(row, dict)), prefix, digits, start)
+
+
+def _new_mrn(records: list[dict[str, Any]]) -> str:
+    """Next medical record number in the facility's existing MRN series (MRN500050 -> MRN500051)."""
+    existing = {str(_get_value(record, "MRN") or "").strip().upper() for record in records}
+    series = [match.group(1) for value in existing if (match := re.fullmatch(r"MRN(\d{6,10})", value))]
+    if not series:
+        candidate_number, width = 1000001, 7
+    else:
+        widest = max(len(number) for number in series)
+        width = widest
+        candidate_number = max(int(number) for number in series if len(number) == widest) + 1
+    candidate = f"MRN{candidate_number:0{width}d}"
+    while candidate in existing:
+        candidate_number += 1
+        candidate = f"MRN{candidate_number:0{width}d}"
+    return candidate
+
+
+def _ensure_sheet(store: dict[str, Any], sheet_name: str, columns: Any = ()) -> dict[str, Any]:
+    """Return a record sheet, creating it (and any new columns) so new data types persist like the others."""
+    if not _SHEET_NAME.match(str(sheet_name or "")):
+        raise ValueError(f"Invalid EHR sheet name: {sheet_name!r}")
+    sheet = store["sheets"].get(sheet_name)
+    if sheet is None:
+        sheet = store["sheets"][sheet_name] = {"headers": [], "records": []}
+    elif "records" not in sheet:
+        raise ValueError(f"EHR sheet is not a record table: {sheet_name}")
+    headers = sheet.setdefault("headers", [])
+    for column in columns:
+        if column not in headers:
+            headers.append(column)
+    return sheet
+
+
+def _assign_identifier(store: dict[str, Any], sheet_name: str, supplied: dict[str, Any]) -> None:
+    if sheet_name not in IDENTIFIER_FORMATS:
+        return
+    column = IDENTIFIER_FORMATS[sheet_name][0]
+    if not str(supplied.get(column) or "").strip():
+        supplied[column] = next_identifier(store, sheet_name)
+
+
 def _row_for_headers(headers: list[str], supplied: dict[str, Any]) -> dict[str, Any]:
     values = {str(key).casefold(): _json_value(value) for key, value in supplied.items()}
     row = {header: values.get(header.casefold()) for header in headers}
@@ -268,7 +334,7 @@ def create_patient(payload: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"Patient already exists: {patient_id}")
         values.setdefault("Patient_ID", str(patient_id))
         if not values.get("MRN") and not values.get("mrn"):
-            values["MRN"] = f"MRN{str(patient_id).lstrip('P')}"
+            values["MRN"] = _new_mrn(patients)
         values.setdefault("Record_Status", "Active")
         sheet = store["sheets"]["Patient_Master"]
         row = _row_for_headers(sheet["headers"], values)
@@ -317,15 +383,19 @@ def replace_patient_records(patient_id: str, sheet_name: str, records: list[dict
     with _STORE_LOCK:
         store = _read_store()
         _find_patient(store, patient_id)
-        rows = _sheet_records(store, sheet_name)
-        headers = store["sheets"][sheet_name]["headers"]
+        sheet = _ensure_sheet(store, sheet_name, (key for supplied in records or [] for key in supplied))
+        rows = sheet["records"]
+        headers = sheet["headers"]
         replacements = []
         for supplied in records or []:
+            supplied = dict(supplied)
+            _assign_identifier(store, sheet_name, supplied)
             record = _row_for_headers(headers, supplied)
             record["Patient_ID"] = str(patient_id)
             replacements.append(record)
+            sheet["records"] = [*rows, *replacements]  # so the next assigned ID sees this one
         others = [row for row in rows if str(_get_value(row, "Patient_ID", "patient_id")) != str(patient_id)]
-        store["sheets"][sheet_name]["records"] = others + replacements
+        sheet["records"] = others + replacements
         _write_store(store)
     return replacements
 
@@ -334,14 +404,56 @@ def add_patient_record(patient_id: str, sheet_name: str, record: dict[str, Any])
     with _STORE_LOCK:
         store = _read_store()
         _find_patient(store, patient_id)
-        rows = _sheet_records(store, sheet_name)
-        headers = store["sheets"][sheet_name]["headers"]
         supplied = dict(record or {})
         supplied.setdefault("Patient_ID", str(patient_id))
-        inserted = _row_for_headers(headers, supplied)
-        rows.append(inserted)
+        sheet = _ensure_sheet(store, sheet_name, supplied)
+        _assign_identifier(store, sheet_name, supplied)
+        inserted = _row_for_headers(sheet["headers"], supplied)
+        sheet["records"].append(inserted)
         _write_store(store)
     return inserted
+
+
+def upsert_patient_records(
+    patient_id: str, sheet_name: str, records: list[dict[str, Any]], key: str
+) -> list[dict[str, Any]]:
+    """Insert or update a patient's rows matched on ``key`` (e.g. Order_ID), in one write.
+
+    Rows without a key get a new hospital-style identifier when the sheet has one; a key that already
+    belongs to another patient is refused so one patient's order can never overwrite another's.
+    """
+    if not str(key or "").strip():
+        raise ValueError("An upsert needs a key column.")
+    with _STORE_LOCK:
+        store = _read_store()
+        _find_patient(store, patient_id)
+        sheet = _ensure_sheet(store, sheet_name, [key, *(column for supplied in records or [] for column in supplied)])
+        saved = []
+        for supplied in records or []:
+            values = {**dict(supplied), "Patient_ID": str(patient_id)}
+            if sheet_name in IDENTIFIER_FORMATS and IDENTIFIER_FORMATS[sheet_name][0] == key:
+                _assign_identifier(store, sheet_name, values)
+            key_value = str(values.get(key) or "").strip()
+            if not key_value:
+                raise ValueError(f"Every {sheet_name} row needs a {key}.")
+            existing = next((row for row in sheet["records"] if str(_get_value(row, key) or "") == key_value), None)
+            if existing is not None and str(_get_value(existing, "Patient_ID")) != str(patient_id):
+                raise ValueError(f"{key} {key_value} belongs to another patient.")
+            if existing is None:
+                existing = _row_for_headers(sheet["headers"], values)
+                sheet["records"].append(existing)
+            else:
+                existing.update({column: _json_value(value) for column, value in values.items()})
+            saved.append(dict(existing))
+        _write_store(store)
+    return saved
+
+
+def list_sheet(sheet_name: str) -> dict[str, Any]:
+    """All rows of one sheet across patients (population worklists such as patient A/R)."""
+    store = _read_store()
+    sheet = store.get("sheets", {}).get(sheet_name) or {}
+    return {"sheet": sheet_name, "headers": list(sheet.get("headers") or []), "records": list(sheet.get("records") or [])}
 
 
 def export_patient_data(patient_id: str | None = None) -> dict[str, Any]:
@@ -475,8 +587,8 @@ def generate_patient_bill(patient_id: str, bill_request: dict[str, Any]) -> dict
             if not priced_count:
                 raise ValueError("None of the requested performed CPT/HCPCS codes has a valid chargemaster price for the linked encounter type; no draft bill was created.")
         else:
-            encounter_id = f"ENC-{uuid.uuid4().hex[:10].upper()}"
-            encounter_sheet = store["sheets"]["Encounters"]
+            encounter_id = next_identifier(store, "Encounters")
+            encounter_sheet = _ensure_sheet(store, "Encounters")
             _append_generated_row(store, "Encounters", encounter_sheet["headers"], {
                 "Encounter_ID": encounter_id,
                 "Patient_ID": str(patient_id),

@@ -14,7 +14,7 @@ import streamlit as st
 
 from frontend.api_client import HealthcareApiClient
 from frontend.chargemaster import _configured_path as configured_chargemaster_path
-from frontend.chargemaster import build_cpt_bill_rows
+from frontend.chargemaster import build_cpt_bill_rows, supplemental_item
 from frontend.settings import PROJECT_ROOT
 
 try:
@@ -513,7 +513,9 @@ def build_estimated_hospital_bill(cpt_results, encounter_type):
             {
                 "CPT/HCPCS Code": code,
                 "Service Description": row.get("Procedure Description", "Not specified"),
-                "Department": departments.get(normalize_billing_code(code), "Not specified"),
+                "Department": departments.get(normalize_billing_code(code))
+                or (supplemental_item(code) or {}).get("department")
+                or "Not specified",
                 "Quantity": quantity,
                 "Unit Charge": unit_display,
                 "Gross Charge": gross_display,

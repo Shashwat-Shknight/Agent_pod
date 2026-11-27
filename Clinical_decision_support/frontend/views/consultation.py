@@ -64,19 +64,23 @@ def register_consultation_in_ehr(record, client=None, patient=None, dob=None, en
         service_date = datetime.now().date().isoformat()
 
     if not record.get("ehr_encounter_id"):
+        # The EHR assigns the hospital encounter number (ENC#########) so every order, result, claim
+        # and patient account of this visit links back to one encounter and one MRN.
         encounter = client.create_patient_record(
             patient_id,
             "Encounters",
             {
-                "Encounter_ID": f"ENC-{uuid.uuid4().hex[:10].upper()}",
                 "Patient_ID": patient_id,
+                "MRN": record["mrn"],
                 "Date": service_date,
                 "Type": encounter_type,
                 "Department": "Primary Care",
                 "Provider": record.get("doctor", "Unassigned"),
                 "Facility": "NuuCare Demo",
                 "Status": "In Progress",
-                "Primary_Diagnosis": record.get("patient_summary", ""),
+                "Primary_Diagnosis_Code": None,
+                "Primary_Diagnosis": None,  # set from the coded diagnoses when the encounter is billed
+                "Reason_for_Visit": (record.get("key_highlights") or [""])[0] if record.get("key_highlights") else "",
                 "Priority": "Routine",
             },
         )
@@ -91,6 +95,7 @@ def register_consultation_in_ehr(record, client=None, patient=None, dob=None, en
             {
                 "Note_ID": f"NOTE-{uuid.uuid4().hex[:10].upper()}",
                 "Patient_ID": patient_id,
+                "MRN": record["mrn"],
                 "Encounter_ID": record["ehr_encounter_id"],
                 "Note_Type": "SOAP",
                 "Service_Date": service_date,
@@ -140,7 +145,8 @@ def _consult_step_patient():
             patient_id = str(item.get("patient_id") or item.get("Patient_ID") or "")
             if patient_id:
                 patient_label = item.get("display_name") or item.get("Legal_Name") or patient_id
-                ehr_patient_options[f"{patient_label} · {patient_id} · {item.get('MRN', '')}"] = patient_id
+                dob = str(item.get("DOB") or "").split("T")[0]
+                ehr_patient_options[f"{patient_label} · {item.get('MRN') or patient_id}" + (f" · DOB {dob}" if dob else "")] = patient_id
                 ehr_patient_by_id[patient_id] = item
         labels = list(ehr_patient_options)
         default_label = next(
@@ -275,7 +281,8 @@ def _create_consultation_record():
     doctor, now = draft.get("doctor") or "Doctor", datetime.now()
     selected_ehr_patient_id = draft.get("ehr_patient_id")
     record = {
-        "id": f"PT-{str(uuid.uuid4().int)[:6]}",
+        # Temporary key; replaced by the EHR encounter number once the visit is registered below.
+        "id": f"CON-{str(uuid.uuid4().int)[:8]}",
         "name": draft.get("name", ""),
         "age": draft.get("age", ""),
         "gender": draft.get("gender", "Other"),
@@ -303,6 +310,8 @@ def _create_consultation_record():
             dob=draft.get("dob") or None,
             encounter_type=draft.get("encounter_type", "Outpatient"),
         )
+        if record.get("ehr_encounter_id"):
+            record["id"] = record["ehr_encounter_id"]  # one identifier for the visit everywhere
         refresh_ehr_cache()
     except (RuntimeError, requests.exceptions.RequestException, ValueError, KeyError) as error:
         st.warning(f"Consultation saved locally, but EHR registration was unavailable: {error}")
@@ -356,7 +365,10 @@ def _consult_step_record():
     context_badges = (
         '<div class="nc-badge-row" style="justify-content:flex-end">'
         + badge(draft.get("name") or "Patient", "gray")
-        + badge(draft.get("ehr_patient_id") or "New EHR patient", "blue" if draft.get("ehr_patient_id") else "amber")
+        + badge(
+            (draft.get("ehr_patient") or {}).get("MRN") or draft.get("ehr_patient_id") or "New EHR patient (MRN assigned on save)",
+            "blue" if draft.get("ehr_patient_id") else "amber",
+        )
         + badge(draft.get("encounter_type", "Outpatient"), "violet")
         + badge(draft.get("doctor") or "Attending not set", "gray")
         + "</div>"

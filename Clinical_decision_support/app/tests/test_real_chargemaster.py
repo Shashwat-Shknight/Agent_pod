@@ -27,6 +27,7 @@ def test_real_opd_chargemaster_prices_ct_head_by_unit_times_quantity(monkeypatch
         "unit_charge_usd": 1900.0,
         "gross_line_total_usd": 3800.0,
         "rate_source_status": "Found",
+        "rate_source": "Hospital chargemaster",
         "encounter_type": "OPD",
         "chargemaster_sheet": "OPD Charges",
     }]

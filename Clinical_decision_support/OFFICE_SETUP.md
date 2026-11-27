@@ -73,6 +73,23 @@ Two terminals in `Clinical_decision_support`:
 
 Open http://localhost:8501. The first sign-in creates the Super Admin. API docs: http://127.0.0.1:8000/docs
 
+## Updating an existing install to the diagnostics / RCM branch
+
+On a machine that already runs NuuCare (Snowflake connected, `.env` in place):
+
+```powershell
+cd Agent_pod
+git fetch https://github.com/Shashwat-Shknight/Agent_pod.git feature/diagnostics-rcm-prior-auth
+git checkout -b feature/diagnostics-rcm-prior-auth FETCH_HEAD
+cd Clinical_decision_support
+.venv\Scripts\python -m app.db.migrate      # optional: adds the V006 reporting views (views only)
+```
+
+Then restart both terminals. No new packages and no data load are needed: the new sheets (orders,
+prior authorizations, benefits, patient accounts) are created in Snowflake the first time they are
+used. Existing patients keep their MRNs; new visits get `ENC#########` encounter numbers. See
+[RCM_DIAGNOSTICS.md](RCM_DIAGNOSTICS.md) for the walkthrough.
+
 ## Troubleshooting
 
 | Symptom | Fix |

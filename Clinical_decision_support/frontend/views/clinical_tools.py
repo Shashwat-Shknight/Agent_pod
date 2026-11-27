@@ -1,16 +1,25 @@
 """Medication & RTBC, Prior Authorization and Knowledge Base pages."""
 
-import re
 from html import escape
 
+import requests
 import streamlit as st
 
+from frontend import prior_auth as pa
 from frontend.api_client import HealthcareApiClient
 from frontend.clinical_text import guideline_passages
 from frontend.ehr_chart import chart_rows, format_date, is_active_row, medication_safety_checks, primary_coverage
 from frontend.ui.components import badge, card_title, page_title, render_banner, render_checklist, render_html_table, render_tiles
-from frontend.ui.data import BACKEND_ERRORS, fetch_ehr_patients, fetch_patient_chart, record_patient_id
+from frontend.ui.data import (
+    BACKEND_ERRORS,
+    backend_error_message,
+    fetch_ehr_patients,
+    fetch_patient_chart,
+    record_patient_id,
+    refresh_ehr_cache,
+)
 from frontend.ui.shell import render_page
+from frontend.ui.state import can, log_action
 
 
 def _select_ehr_patient(key):
@@ -115,24 +124,98 @@ def show_medications():
             )
 
 
-PRIOR_AUTH_DEMO_RULES = (
-    (70450, 70498, "CT head / neck"),
-    (70540, 70559, "MRI head / neck"),
-    (71250, 71275, "CT chest"),
-    (72125, 72159, "CT / MRI spine"),
-    (73200, 73725, "CT / MRI extremity"),
-    (74150, 74183, "CT / MRI abdomen"),
-    (78459, 78816, "Nuclear medicine / PET"),
-    (95810, 95811, "Polysomnography"),
-)
+PRIOR_AUTH_DEMO_RULES = pa.PRIOR_AUTH_RULES
 
 
 def prior_auth_rule(code):
-    digits = re.sub(r"\D", "", str(code or ""))
-    if len(digits) != 5:
-        return None
-    value = int(digits)
-    return next((label for low, high, label in PRIOR_AUTH_DEMO_RULES if low <= value <= high), None)
+    return pa.prior_auth_rule(code)
+
+
+def _pa_flash(kind, message):
+    st.session_state["pa_flash"] = (kind, message)
+
+
+def _pa_save(patient_id, row):
+    try:
+        HealthcareApiClient().upsert_patient_records(patient_id, "Prior_Authorizations", [row], "PA_ID")
+    except (RuntimeError, requests.exceptions.RequestException, ValueError) as error:
+        _pa_flash("error", f"Authorization {row.get('PA_ID')} was not saved: {backend_error_message(error)}")
+        return False
+    refresh_ehr_cache()
+    return True
+
+
+def _pa_resubmit(patient_id, row, dx_key, note_key):
+    updated = dict(row)
+    extra_dx = [code.strip().upper() for code in str(st.session_state.get(dx_key) or "").replace(",", ";").split(";") if code.strip()]
+    if extra_dx:
+        merged = [code for code in dict.fromkeys([*str(row.get("Diagnosis_Codes") or "").split(";"), *extra_dx]) if code]
+        updated["Diagnosis_Codes"] = ";".join(merged)
+    note = str(st.session_state.get(note_key) or "").strip()
+    if note:
+        updated["Clinical_Justification"] = f"{row.get('Clinical_Justification') or ''} | Additional information: {note}".strip(" |")
+    decided = pa.submit(updated)
+    if _pa_save(patient_id, decided):
+        log_action("prior_auth.resubmit", f"{decided['PA_ID']}: {decided['Status']}")
+        _pa_flash("success", f"{decided['PA_ID']} resubmitted: {decided['Status']}"
+                  + (f" · auth {decided['Auth_Number']}" if decided.get("Auth_Number") else ""))
+
+
+def _pa_decide(patient_id, row, status_key, auth_key, reason_key):
+    try:
+        decided = pa.record_decision(row, st.session_state.get(status_key), auth_number=st.session_state.get(auth_key) or "",
+                                     reason=st.session_state.get(reason_key) or "")
+    except ValueError as error:
+        _pa_flash("error", str(error))
+        return
+    if _pa_save(patient_id, decided):
+        log_action("prior_auth.decision", f"{decided['PA_ID']}: {decided['Status']}")
+        _pa_flash("success", f"{decided['PA_ID']}: {decided['Status']} recorded")
+
+
+def _render_authorization_requests(patient_id, chart):
+    requests_ = chart_rows(chart, "Prior_Authorizations")
+    with st.container(border=True):
+        card_title("Authorization requests", "Created automatically when an order needs payer approval · ePA (X12 278)")
+        flash = st.session_state.pop("pa_flash", None)
+        if flash:
+            getattr(st, flash[0])(flash[1])
+        if not requests_:
+            st.caption("No authorization requests for this patient. They appear when a gated study is ordered.")
+            return
+        tones = {pa.APPROVED: "green", pa.PENDED: "amber", pa.SUBMITTED: "blue", pa.DENIED: "red", pa.REQUIRED: "amber"}
+        render_html_table(
+            ["Request", "Encounter", "Service", "Diagnoses", "Status", "Auth number", "Valid through", "Determination"],
+            [[
+                f"<code>{escape(str(row.get('PA_ID') or ''))}</code>",
+                escape(str(row.get("Encounter_ID") or "")),
+                escape(str(row.get("Service") or "")) + f"<br><small>CPT {escape(str(row.get('CPT_HCPCS') or ''))}</small>",
+                escape(str(row.get("Diagnosis_Codes") or "—")),
+                badge(row.get("Status") or "", tones.get(row.get("Status"), "gray")),
+                escape(str(row.get("Auth_Number") or "—")),
+                escape(str(row.get("Valid_Through") or "—")),
+                escape(str(row.get("Determination_Reason") or "")),
+            ] for row in requests_],
+        )
+        open_requests = [row for row in requests_ if row.get("Status") in {pa.PENDED, pa.REQUIRED, pa.DENIED}]
+        if not open_requests or not can("RCM Workspace", "Edit"):
+            return
+        with st.expander(f"Work {len(open_requests)} open request(s)"):
+            for row in open_requests:
+                key = f"pa_{row.get('PA_ID')}"
+                st.markdown(f"**{escape(str(row.get('PA_ID')))} · {escape(str(row.get('Service')))}** — {escape(str(row.get('Status')))}")
+                left, right = st.columns(2, gap="medium")
+                with left:
+                    st.text_input("Add supporting diagnosis codes", key=f"{key}_dx", placeholder="e.g. G43.909")
+                    st.text_area("Additional clinical information", key=f"{key}_note", height=80)
+                    st.button("Resubmit to payer", key=f"{key}_resubmit", type="primary",
+                              on_click=_pa_resubmit, args=(patient_id, row, f"{key}_dx", f"{key}_note"))
+                with right:
+                    st.selectbox("Payer decision received", [pa.APPROVED, pa.DENIED, pa.PENDED], key=f"{key}_status")
+                    st.text_input("Authorization number", key=f"{key}_auth")
+                    st.text_input("Reason / reference", key=f"{key}_reason")
+                    st.button("Record decision", key=f"{key}_decide",
+                              on_click=_pa_decide, args=(patient_id, row, f"{key}_status", f"{key}_auth", f"{key}_reason"))
 
 
 def show_prior_auth():
@@ -169,7 +252,7 @@ def show_prior_auth():
         )
     rows, flagged = [], 0
     for order in orders:
-        rule = prior_auth_rule(order["code"])
+        rule = pa.requirement(order["code"], coverage).get("category") if prior_auth_rule(order["code"]) else None
         flagged += bool(rule)
         rows.append(
             [
@@ -189,6 +272,7 @@ def show_prior_auth():
             ("PA likely", flagged),
         ]
     )
+    _render_authorization_requests(patient_id, chart)
     with st.container(border=True):
         card_title(
             "Orders & Services", "Rule set is a demo screen, not a payer policy — confirm with the payer before scheduling"

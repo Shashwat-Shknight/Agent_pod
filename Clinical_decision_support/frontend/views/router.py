@@ -26,6 +26,7 @@ from frontend.views.coding import show_codes
 from frontend.views.consultation import show_new_consultation
 from frontend.views.dashboard import show_dashboard
 from frontend.views.ehr_records import show_ehr_demo_data
+from frontend.views.patient_ar import show_patient_ar
 from frontend.views.review import show_review_note
 from frontend.views.user_access import show_user_access
 from frontend.views.vbc.command import show_measures, show_stars, show_versions
@@ -61,6 +62,7 @@ PAGES = {
     "knowledge_base": show_knowledge_base,
     "ipd_billing": show_ipd_billing,
     "claim_generation": show_claim_generation_page,
+    "rcm_ar": show_patient_ar,
     "ehr_data": show_ehr_demo_data,
     "admin_dashboard": show_admin_dashboard,
     "super_admin": show_user_access,

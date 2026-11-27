@@ -11,8 +11,9 @@ EHR_DATA_FILE = PROJECT_ROOT / "Epic_Inspired_USA_50_Patient_Demo.xlsx"
 EHR_JSON_FILE = PROJECT_ROOT / "Epic_Inspired_USA_50_Patient_Demo.json"
 
 BILLING_NOTICE = (
-    "This draft contains gross chargemaster-based demo charges only. It is not a finalized claim, "
-    "payer-allowed amount, or patient responsibility amount. Professional coding and billing validation is required."
+    "Gross charges come from the chargemaster. Payer-allowed, payer and patient amounts are estimates from "
+    "synthetic contract terms and plan benefits until the payer's remittance (835) is posted. "
+    "Professional coding and billing validation is required."
 )
 
 ANALYSIS_VERSION = "2"

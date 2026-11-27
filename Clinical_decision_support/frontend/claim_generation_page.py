@@ -376,14 +376,19 @@ def build_ambient_bill(record: dict[str, Any], estimate: dict[str, Any], code_re
         for item in code_results.get("icd10", [])
         if isinstance(item, dict) and _text(item.get("ICD-10 Code"))
     ))
+    if estimate.get("diagnosis_codes"):
+        diagnosis_codes = list(dict.fromkeys([*estimate["diagnosis_codes"], *diagnosis_codes]))
+    claim_lines = {str(line.get("code")): line for line in estimate.get("claim_lines") or [] if isinstance(line, dict)}
     lines = []
     for row in estimate.get("rows", []):
         if not isinstance(row, dict):
             continue
         gross_charge = _amount(row.get("Gross Charge"))
+        code = _text(row.get("CPT/HCPCS Code"))
+        claim_line = claim_lines.get(code, {})
         lines.append({
             "Service Date": service_date,
-            "CPT / HCPCS": _text(row.get("CPT/HCPCS Code")),
+            "CPT / HCPCS": code,
             "Revenue Code": _text(row.get("Revenue Code")),
             "Service Category": _text(row.get("Service Category")),
             "Service Description": _text(row.get("Service Description")),
@@ -391,15 +396,29 @@ def build_ambient_bill(record: dict[str, Any], estimate: dict[str, Any], code_re
             "Quantity": row.get("Quantity"),
             "Unit Charge ($)": _amount(row.get("Unit Charge")),
             "Line Charge ($)": gross_charge,
+            # 837P SV107 diagnosis pointers: tests point at the diagnoses that justified the order.
+            "ICD-10-CM Pointer": ";".join(claim_line.get("dx") or diagnosis_codes[:4]),
+            "Authorization Number": _text(claim_line.get("auth_number")),
+            "Order ID": _text(claim_line.get("order_id")),
         })
 
+    coverage = estimate.get("coverage") if isinstance(estimate.get("coverage"), dict) else {}
+    authorizations = list(dict.fromkeys(line["Authorization Number"] for line in lines if line["Authorization Number"]))
     return {
         "encounter_id": _text(record.get("ehr_encounter_id") or record.get("id")),
         "encounter_type": _text(estimate.get("encounter_type") or record.get("ehr_encounter_type")),
         "patient": {
             "Patient ID": _text(record.get("ehr_patient_id") or record.get("id")),
+            "MRN": _text(estimate.get("mrn") or record.get("mrn")),
             "Patient Name": _text(record.get("name")),
-            "Payer": _text(record.get("payer") or record.get("insurance")),
+            "DOB": _text(str(record.get("dob") or "").split("T")[0]),
+            "Gender": _text(record.get("gender")),
+            "Payer": _text(coverage.get("Payer_Name") or record.get("payer") or record.get("insurance")),
+            "Plan Type": _text(coverage.get("Plan_Type")),
+            "Member ID": _text(coverage.get("Member_ID")),
+            "Group Number": _text(coverage.get("Group_Number")),
+            "Relationship to Subscriber": _text(coverage.get("Relationship_to_Subscriber") or "Self"),
+            "Prior Authorization Number": ";".join(authorizations),
             "Admission Date": service_date,
             "Discharge Date": service_date,
             "Primary ICD-10-CM": diagnosis_codes[0] if diagnosis_codes else "",
@@ -407,6 +426,7 @@ def build_ambient_bill(record: dict[str, Any], estimate: dict[str, Any], code_re
         },
         "lines": lines,
         "gross": _amount(estimate.get("total")) or Decimal("0.00"),
+        "expected": estimate.get("expected"),
     }
 
 
@@ -623,6 +643,8 @@ def build_claim_record(
             "Unit Charge ($)": _json_value(line.get("Unit Charge ($)")),
             "Charge Amount ($)": _json_value(line.get("Line Charge ($)")),
         }
+        if _text(line.get("Authorization Number")):
+            charge["Authorization Number"] = _text(line.get("Authorization Number"))
         if claim_type == "837P":
             charge["Diagnosis Pointers"] = pointers
             diagnosis_pointers.append({
@@ -654,6 +676,9 @@ def build_claim_record(
         "CPT/HCPCS Codes": list(dict.fromkeys(cpt_codes)),
         "Charges": charges,
         "Supporting Documents Validation": _json_value(supporting_documents),
+        # Loop 2300 REF*G1: payer authorization numbers for services that required one.
+        "Prior Authorization Number": _text(patient.get("Prior Authorization Number")),
+        "Lifecycle": [{"at": datetime.now().strftime("%Y-%m-%d %H:%M"), "event": "Claim generated"}],
     }
     if claim["Claim Type"] == "837P":
         claim.update({
@@ -1272,3 +1297,7 @@ def show_claim_generation_page() -> None:
         report = reports.get(selected_claim["Claim ID"])
         if report is not None:
             _render_validation_report(report, selected_claim, document_repository)
+    if selected_claims:
+        from frontend.views.rcm_lifecycle import render_claim_lifecycle
+
+        render_claim_lifecycle(encounter_record, encounter_id, selected_claims, claims)

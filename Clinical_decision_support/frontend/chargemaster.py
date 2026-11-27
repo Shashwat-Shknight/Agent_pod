@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+from functools import lru_cache
 import re
 from decimal import Decimal, InvalidOperation
 from datetime import date
@@ -71,6 +72,34 @@ def _find_column(frame: pd.DataFrame, aliases: set[str]) -> Any | None:
         (column for column in frame.columns if _normalize_header(column) in aliases),
         None,
     )
+
+
+SUPPLEMENTAL_CDM_PATH = PROJECT_ROOT / "data" / "supplemental_cdm.json"
+SUPPLEMENTAL_RATE_SOURCE = "Supplemental CDM"
+
+
+@lru_cache(maxsize=1)
+def supplemental_cdm() -> dict[str, dict[str, Any]]:
+    """Codes the hospital chargemaster does not list (new-patient visits, common labs, ECG, collection fee).
+
+    Keyed by normalized CPT/HCPCS. Only consulted after the configured chargemaster misses a code, so
+    a hospital's own price always wins.
+    """
+    try:
+        payload = json.loads(SUPPLEMENTAL_CDM_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    items = {}
+    for item in payload.get("items", []):
+        code = _normalize_code(item.get("code"))
+        rate = _parse_rate(str(item.get("unit_charge", "")))
+        if code and rate is not None:
+            items[code] = {**item, "unit_charge": rate}
+    return items
+
+
+def supplemental_item(code: Any) -> dict[str, Any] | None:
+    return supplemental_cdm().get(_normalize_code(code))
 
 
 def _revenue_code(value: Any) -> str:
@@ -172,6 +201,10 @@ def assign_revenue_codes(bill: dict[str, Any]) -> list[str]:
                 if code:
                     line["Revenue Code"] = code
                     break
+        if not line["Revenue Code"]:
+            supplement = supplemental_item(line.get("CPT / HCPCS") or line.get("CPT/HCPCS Code"))
+            if supplement is not None:
+                line["Revenue Code"] = _revenue_code(supplement.get("revenue_code"))
         if not line["Revenue Code"]:
             line["Revenue Code"] = "REVIEW_REQUIRED"
             cpt_code = _clean_cell(line.get("CPT / HCPCS")) or "not provided"
@@ -389,6 +422,14 @@ def price_cpt_bill_lines(
         elif load_status == "Found":
             status = "Missing required columns"
 
+        rate_source = "Hospital chargemaster" if status == "Found" else ""
+        if status in {"Not found in chargemaster", "Chargemaster unavailable"} and normalized_code:
+            supplement = supplemental_item(normalized_code)
+            if supplement is not None:
+                unit_charge = supplement["unit_charge"]
+                description = supplement.get("description") or description
+                gross_line_total = (unit_charge * quantity).quantize(Decimal("0.01"))
+                status, rate_source = "Found", SUPPLEMENTAL_RATE_SOURCE
         output.append({
             "cpt_hcpcs": code,
             "description": description,
@@ -396,6 +437,7 @@ def price_cpt_bill_lines(
             "unit_charge_usd": float(unit_charge) if unit_charge is not None else None,
             "gross_line_total_usd": float(gross_line_total) if gross_line_total is not None else None,
             "rate_source_status": status,
+            "rate_source": rate_source,
             "encounter_type": encounter_type,
             "chargemaster_sheet": source_sheet,
         })
