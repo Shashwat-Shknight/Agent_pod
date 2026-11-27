@@ -7,6 +7,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from app.core.config import (
+    LLM_TEMPERATURE,
     COFORGE_API_KEY,
     COFORGE_API_URL,
     COFORGE_CPT_API_KEY,
@@ -173,8 +174,9 @@ def _call_grok(settings, prompt, system_prompt=None, temperature=0.3):
     return response.json()["choices"][0]["message"]["content"]
 
 
-def call_llm(prompt, system_prompt=None, temperature=0.3):
+def call_llm(prompt, system_prompt=None, temperature=None):
     """Call Grok when GROK_API_KEY is set in .env, otherwise the Coforge LLM Router."""
+    temperature = LLM_TEMPERATURE if temperature is None else temperature
     grok = _grok_settings()
     if grok:
         return _call_grok(grok, prompt, system_prompt, temperature)
@@ -189,12 +191,13 @@ def call_llm(prompt, system_prompt=None, temperature=0.3):
     )
 
 
-def call_llm_for_cpt(prompt, system_prompt=None, temperature=0.3):
+def call_llm_for_cpt(prompt, system_prompt=None, temperature=None):
     """Call the dedicated CPT generation LLM configuration if provided.
 
     The CPT override swaps the API key and endpoint, but keeps the standard model
     selection unless no general model is configured.
     """
+    temperature = LLM_TEMPERATURE if temperature is None else temperature
     grok = _grok_settings()
     if grok:
         return _call_grok(grok, prompt, system_prompt, temperature)

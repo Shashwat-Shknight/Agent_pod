@@ -241,7 +241,7 @@ def test_opd_and_ipd_claims_have_distinct_download_structures():
         "Revenue Codes", "Bill Type",
     } & professional.keys()
     assert "Revenue Code" not in professional["Charges"][0]
-    assert professional["Place of Service"] == "11"
+    assert professional["Place of Service"] == "22"  # hospital outpatient clinic (providers pack)
     assert professional["Diagnosis Pointers"][0]["Diagnosis Pointers"] == ["R05.9"]
     assert {
         "Patient Information", "Facility Information", "Admission Date",
@@ -259,7 +259,7 @@ def test_opd_and_ipd_claims_have_distinct_download_structures():
     professional_text = _claim_text(professional)
     institutional_text = _claim_text(institutional)
     assert "Charges:" in professional_text
-    assert "Place of Service: 11" in professional_text
+    assert "Place of Service: 22" in professional_text
     assert "Revenue Codes:" not in professional_text
     assert "CPT/HCPCS Codes: 71045" in professional_text
     assert "Claim Amount: $113.00" in professional_text

@@ -3,6 +3,7 @@ from typing import Any
 
 from app.agent.context import EncounterContext
 from app.llm_client import call_llm
+from app.core.config import SCRIBE_TEMPERATURE
 
 
 class AmbientScribeAgent:
@@ -23,7 +24,7 @@ class AmbientScribeAgent:
                 "You are an ambient clinical scribe. Extract only information stated in the transcript. "
                 "Do not invent diagnoses, medications, or treatment decisions. Return JSON only."
             ),
-            temperature=0.2,
+            temperature=SCRIBE_TEMPERATURE,
         )
         return self._parse_response(response, transcript)
 

@@ -17,36 +17,32 @@ import re
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from app.rules import packs
 from frontend import diagnostics as dx
 from frontend.rcm import payer_class
 
 REQUIRED, SUBMITTED, APPROVED, PENDED, DENIED, NOT_REQUIRED = (
     "Required", "Submitted", "Approved", "Pended", "Denied", "Not required",
 )
-AUTH_VALID_DAYS = 60
 CHANNEL = "ePA · X12 278 (simulated payer response)"
 
-# CPT ranges commonly requiring authorization (demo rule set; real rules are payer-specific).
-PRIOR_AUTH_RULES = (
-    (70450, 70498, "CT head / neck"),
-    (70540, 70559, "MRI head / neck"),
-    (71250, 71270, "CT chest"),
-    (72125, 72159, "CT / MRI spine"),
-    (73200, 73725, "CT / MRI extremity"),
-    (74150, 74183, "CT / MRI abdomen"),
-    (78451, 78454, "Nuclear cardiology"),
-    (78459, 78816, "Nuclear medicine / PET"),
-    (93303, 93308, "Echocardiography"),
-    (95810, 95811, "Polysomnography"),
-)
+
+def rules() -> dict[str, Any]:
+    """The prior_auth rule pack (CPT ranges, exempt payer classes, validity)."""
+    return packs.load_pack("prior_auth")
 
 
 def prior_auth_rule(code: Any) -> str | None:
+    """Why this service needs authorization: the hospital CDM flag first, then the pack's CPT ranges."""
+    from frontend.chargemaster import cdm_prior_auth_codes
+
     digits = re.sub(r"\D", "", str(code or ""))
+    if str(code or "").strip().upper() in cdm_prior_auth_codes():
+        return "Hospital CDM prior-authorization flag"
     if len(digits) != 5:
         return None
     value = int(digits)
-    return next((label for low, high, label in PRIOR_AUTH_RULES if low <= value <= high), None)
+    return next((rule["category"] for rule in rules()["cpt_ranges"] if rule["low"] <= value <= rule["high"]), None)
 
 
 def requirement(cpt: str, coverage: dict[str, Any] | None) -> dict[str, Any]:
@@ -55,10 +51,9 @@ def requirement(cpt: str, coverage: dict[str, Any] | None) -> dict[str, Any]:
     klass = payer_class(coverage)
     if not rule:
         return {"required": False, "reason": "No authorization rule for this service"}
-    if klass == "Self-pay":
-        return {"required": False, "reason": "Self-pay: no payer authorization"}
-    if klass == "Medicare":
-        return {"required": False, "reason": f"{rule}: Original Medicare does not require prior authorization"}
+    if klass in set(rules().get("exempt_payer_classes") or ()):
+        reason = "Self-pay: no payer authorization" if klass == "Self-pay" else f"{rule}: {klass} does not require prior authorization"
+        return {"required": False, "reason": reason}
     return {"required": True, "reason": f"{rule}: {klass} plans require prior authorization", "category": rule}
 
 
@@ -70,7 +65,7 @@ def build_request(order: dict[str, Any], record: dict[str, Any], coverage: dict[
                   submitted_by: str, now: datetime | None = None) -> dict[str, Any]:
     """Prior_Authorizations row assembled from the order, coverage and the clinical note."""
     now = now or datetime.now()
-    test = dx.BY_KEY[order["test_key"]]
+    test = dx.by_key()[order["test_key"]]
     coverage = coverage or {}
     assessment = dx._section(str(record.get("summary") or ""), "assessment")
     justification = " ".join(assessment.split())[:600] or str(record.get("patient_summary") or "")[:600]
@@ -108,7 +103,7 @@ def submit(request: dict[str, Any], now: datetime | None = None) -> dict[str, An
     row = dict(request)
     row["Submitted_At"] = now.strftime("%Y-%m-%d %H:%M")
     row["Status"] = SUBMITTED
-    test = next((item for item in dx.CATALOG if "+".join(item.cpts) == row.get("CPT_HCPCS")), None)
+    test = next((item for item in dx.catalog() if "+".join(item.cpts) == row.get("CPT_HCPCS")), None)
     diagnoses = [code for code in str(row.get("Diagnosis_Codes") or "").split(";") if code]
     supported = bool(test) and any(code.startswith(test.indications) for code in diagnoses)
     row["Decision_At"] = now.strftime("%Y-%m-%d %H:%M")
@@ -118,8 +113,8 @@ def submit(request: dict[str, Any], now: datetime | None = None) -> dict[str, An
             "Status": APPROVED,
             "Auth_Number": "AUTH" + _number_from(f"{row.get('PA_ID')}|{row.get('Order_ID')}|{row.get('Member_ID')}", 9),
             "Valid_From": start.isoformat(),
-            "Valid_Through": (start + timedelta(days=AUTH_VALID_DAYS)).isoformat(),
-            "Approved_Units": 1,
+            "Valid_Through": (start + timedelta(days=rules()["authorization_valid_days"])).isoformat(),
+            "Approved_Units": rules().get("approved_units", 1),
             "Determination_Reason": "Meets criteria: diagnosis supports the requested service.",
         })
     else:
@@ -143,7 +138,7 @@ def record_decision(request: dict[str, Any], status: str, *, auth_number: str = 
     if status == APPROVED:
         row.update({
             "Auth_Number": auth_number.strip(), "Valid_From": now.date().isoformat(),
-            "Valid_Through": (now.date() + timedelta(days=AUTH_VALID_DAYS)).isoformat(), "Approved_Units": 1,
+            "Valid_Through": (now.date() + timedelta(days=rules()["authorization_valid_days"])).isoformat(), "Approved_Units": rules().get("approved_units", 1),
         })
     return row
 

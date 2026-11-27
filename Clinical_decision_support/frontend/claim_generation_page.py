@@ -36,18 +36,44 @@ from frontend.ui.state import can_open, current_user, go_to
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OPD_SPLIT_VERSION = 2
-SAMPLE_PROVIDER_NPIS = {
-    "VHC": "1999999984",
-    "Emory Healthcare": "1234567893",
-    "Demo Provider": "1000000004",
-}
-SAMPLE_PAYER_OPTIONS = (
-    "UnitedHealthcare",
-    "Aetna",
-    "Blue Cross Blue Shield",
-    "Medicare",
-    "Medicaid",
-)
+def _directory() -> dict[str, Any]:
+    from app.rules import packs
+
+    return packs.load_pack("providers")
+
+
+def provider_npi(name: str) -> str:
+    """NPI for a clinician or organization from the provider directory, else the directory default."""
+    directory = _directory()
+    entry = (directory.get("clinicians") or {}).get(name) or (directory.get("organizations") or {}).get(name) or {}
+    return str(entry.get("npi") or directory.get("default_npi") or "")
+
+
+def provider_options() -> dict[str, str]:
+    directory = _directory()
+    return {name: str(entry.get("npi") or "") for group in ("organizations", "clinicians")
+            for name, entry in (directory.get(group) or {}).items()}
+
+
+def payer_options() -> tuple[str, ...]:
+    return tuple(_directory().get("payer_options") or ())
+
+
+def default_place_of_service() -> str:
+    return str((_directory().get("facility") or {}).get("place_of_service") or "22")
+
+
+def default_bill_type(encounter_type: str) -> str:
+    bill_types = (_directory().get("facility") or {}).get("bill_types") or {}
+    return str(bill_types.get(encounter_type) or ("111" if encounter_type == "IPD" else "131"))
+
+
+def __getattr__(name: str) -> Any:
+    if name == "SAMPLE_PROVIDER_NPIS":
+        return provider_options()
+    if name == "SAMPLE_PAYER_OPTIONS":
+        return payer_options()
+    raise AttributeError(name)
 
 
 def _text(value: Any) -> str:
@@ -432,7 +458,7 @@ def build_ambient_bill(record: dict[str, Any], estimate: dict[str, Any], code_re
         # directory is connected, so the claim form opens complete instead of blocking on empty fields.
         "rendering_provider": {
             "Name": _text(record.get("doctor")) or "Demo Provider",
-            "NPI": SAMPLE_PROVIDER_NPIS["Demo Provider"],
+            "NPI": provider_npi(_text(record.get("doctor")) or "Demo Provider"),
         },
     }
 
@@ -694,7 +720,7 @@ def build_claim_record(
                 bill.get("place_of_service")
                 or bill.get("Place of Service")
                 or patient.get("Place of Service")
-            ) or "11",
+            ) or default_place_of_service(),
             "Diagnosis Pointers": diagnosis_pointers,
             "Professional Charges": charges,
         })
@@ -708,7 +734,7 @@ def build_claim_record(
                 bill.get("bill_type")
                 or bill.get("Bill Type")
                 or patient.get("Bill Type")
-            ) or "111",
+            ) or default_bill_type(encounter_type),
             "Facility Charges": charges,
             "Total Facility Amount": float(total),
         })
@@ -986,12 +1012,12 @@ def _claim_information_form(claim_form_key, defaults, submit_disabled):
             key=f"claim_patient_dob_{claim_form_key}", format="YYYY-MM-DD",
         )
         provider_col, npi_col = st.columns(2)
-        provider_name = _choice_input(provider_col, "Provider Name", SAMPLE_PROVIDER_NPIS, defaults["Provider Name"],
+        provider_name = _choice_input(provider_col, "Provider Name", provider_options(), defaults["Provider Name"],
                                       f"claim_provider_name_{claim_form_key}", "Choose or enter a provider")
-        provider_npi = _choice_input(npi_col, "Provider NPI", SAMPLE_PROVIDER_NPIS.values(), defaults["Provider NPI"],
+        provider_npi = _choice_input(npi_col, "Provider NPI", provider_options().values(), defaults["Provider NPI"],
                                      f"claim_provider_npi_{claim_form_key}", "Choose or enter an NPI")
         payer_col, member_col = st.columns(2)
-        payer_name = _choice_input(payer_col, "Payer Name", SAMPLE_PAYER_OPTIONS, defaults["Payer Name"],
+        payer_name = _choice_input(payer_col, "Payer Name", payer_options(), defaults["Payer Name"],
                                    f"claim_payer_name_{claim_form_key}", "Choose or enter a payer")
         member_id = member_col.text_input("Member ID", value=defaults["Member ID"], key=f"claim_member_id_{claim_form_key}")
         submitted = st.form_submit_button("Generate claims", type="primary", icon=":material/description:", disabled=submit_disabled)

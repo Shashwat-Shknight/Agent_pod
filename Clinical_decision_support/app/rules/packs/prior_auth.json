@@ -1,0 +1,26 @@
+{
+  "pack": "prior_auth",
+  "version": "2026.1",
+  "effective": "2026-01-01",
+  "owner": "Utilization Management",
+  "sources": [
+    "Demo rule set modelled on common commercial / Medicare Advantage advanced-imaging, cardiology and sleep programs",
+    "The hospital chargemaster CDM 'Prior Auth Flag' column is merged in at run time",
+    "Original Medicare generally does not require prior authorization for these outpatient diagnostics"
+  ],
+  "cpt_ranges": [
+    {"low": 70450, "high": 70498, "category": "CT head / neck"},
+    {"low": 70540, "high": 70559, "category": "MRI head / neck"},
+    {"low": 71250, "high": 71270, "category": "CT chest"},
+    {"low": 72125, "high": 72159, "category": "CT / MRI spine"},
+    {"low": 73200, "high": 73725, "category": "CT / MRI extremity"},
+    {"low": 74150, "high": 74183, "category": "CT / MRI abdomen"},
+    {"low": 78451, "high": 78454, "category": "Nuclear cardiology"},
+    {"low": 78459, "high": 78816, "category": "Nuclear medicine / PET"},
+    {"low": 93303, "high": 93308, "category": "Echocardiography"},
+    {"low": 95810, "high": 95811, "category": "Polysomnography"}
+  ],
+  "exempt_payer_classes": ["Medicare", "Self-pay"],
+  "authorization_valid_days": 60,
+  "approved_units": 1
+}

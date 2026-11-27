@@ -31,3 +31,18 @@ EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "64"))
 RETRIEVAL_CANDIDATES = int(os.getenv("RETRIEVAL_CANDIDATES", "20"))
 RETRIEVAL_RESULTS = int(os.getenv("RETRIEVAL_RESULTS", "5"))
 MAX_CONTEXT_CHARS = int(os.getenv("MAX_CONTEXT_CHARS", "12000"))
+
+
+def _env_number(name, default, kind=float):
+    try:
+        return kind(os.getenv(name, "").strip() or default)
+    except ValueError:
+        return default
+
+
+# Model sampling and retrieval depth: tune per deployment in .env, no code change.
+SCRIBE_TEMPERATURE = _env_number("SCRIBE_TEMPERATURE", 0.2)   # structured SOAP extraction: near-deterministic
+LLM_TEMPERATURE = _env_number("LLM_TEMPERATURE", 0.3)         # CDS and other generation
+CDS_MAX_PROBLEMS = _env_number("CDS_MAX_PROBLEMS", 5, int)
+CDS_PASSAGES_PER_PROBLEM = _env_number("CDS_PASSAGES_PER_PROBLEM", 2, int)
+CDS_SUMMARY_TOP_K = _env_number("CDS_SUMMARY_TOP_K", 5, int)

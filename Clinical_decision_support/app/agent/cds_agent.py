@@ -3,19 +3,15 @@ import re
 from app.llm_client import call_llm
 from app.agent.context import EncounterContext
 
-MAX_PROBLEMS = 5
-PASSAGES_PER_PROBLEM = 2
+from app.core.config import CDS_MAX_PROBLEMS as MAX_PROBLEMS
+from app.core.config import CDS_PASSAGES_PER_PROBLEM as PASSAGES_PER_PROBLEM
+from app.core.config import CDS_SUMMARY_TOP_K
+from app.rules import packs
 
-# Wording that steers retrieval toward the management sections of Harrison's for common problems.
-_QUERY_EXPANSIONS = (
-    (r"neuropath", "diabetic peripheral polyneuropathy foot examination monofilament treatment"),
-    (r"diabet|hyperglyc|\bdm\b|\bt2dm\b", "type 2 diabetes mellitus glycemic control metformin HbA1c treatment"),
-    (r"hypertens|blood pressure", "hypertension treatment blood pressure goal antihypertensive ACE inhibitor"),
-    (r"lipid|cholesterol|statin", "statin therapy LDL cholesterol cardiovascular risk"),
-    (r"kidney|renal|ckd|egfr|albumin", "chronic kidney disease albuminuria eGFR"),
-    (r"heart failure", "heart failure treatment"),
-    (r"anemia", "anemia evaluation treatment"),
-)
+
+def query_expansions() -> list[tuple[str, str]]:
+    """Wording that steers retrieval toward the management sections of Harrison's (clinical_lexicon pack)."""
+    return [(item["pattern"], item["query"]) for item in packs.load_pack("clinical_lexicon").get("cds_query_expansions") or []]
 
 
 _NEXT_HEADING = r"Plan|Objective|Current Medications|Past Medical History|History of Present Illness|Chief Complaint|Subjective"
@@ -48,7 +44,7 @@ def encounter_problems(encounter: EncounterContext) -> list[str]:
 
 def problem_query(problem: str) -> str:
     lowered = problem.lower()
-    for pattern, expansion in _QUERY_EXPANSIONS:
+    for pattern, expansion in query_expansions():
         if re.search(pattern, lowered):
             return f"{problem} {expansion}"
     return problem
@@ -67,7 +63,7 @@ def grounded_guideline_context(encounter: EncounterContext) -> str:
 
     problems = encounter_problems(encounter)
     if not problems:
-        return retrieve_documents(encounter.patient_summary, top_k=5)
+        return retrieve_documents(encounter.patient_summary, top_k=CDS_SUMMARY_TOP_K)
     entries, seen, total = [], set(), 0
     for problem in problems:
         for chunk in retrieve_chunks(problem_query(problem), results=PASSAGES_PER_PROBLEM):

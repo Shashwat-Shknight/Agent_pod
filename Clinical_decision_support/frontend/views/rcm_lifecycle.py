@@ -130,7 +130,7 @@ def render_claim_lifecycle(record, encounter_id, selected_claims, claims):
         st.caption(f"Next step: {account.get('Recommended_Action')}")
         if account.get("Denial_Reasons"):
             codes = str(account["Denial_Reasons"]).split(";")
-            render_banner("Denied lines: " + ", ".join(codes), " · ".join(f"{code}: {rcm.CARC_TEXT.get(code, '')}" for code in codes),
+            render_banner("Denied lines: " + ", ".join(codes), " · ".join(f"{code}: {rcm.carc_text().get(code, '')}" for code in codes),
                           tone="danger", icon="&#9888;")
         events = sorted(
             ({"at": event.get("at"), "claim": claim["Claim ID"], "event": event.get("event")}

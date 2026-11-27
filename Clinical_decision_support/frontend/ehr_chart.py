@@ -179,25 +179,33 @@ def medication_safety_checks(chart, plan_text=""):
 
 
 def care_gaps(chart):
+    """Quality-measure gaps (HEDIS-style) with thresholds from the care_gaps rule pack."""
+    from app.rules import packs
+
     if not chart or not chart.get("patient"):
         return []
+    rules = packs.load_pack("care_gaps")
+    diabetes, hypertension = rules["diabetes"], rules["hypertension"]
     problems = chart_rows(chart, "Problems")
     problem_text = " ".join(
         f"{row.get('Problem_Name', '')} {row.get('ICD_10_CM', '')}" for row in problems if is_active_row(row)
     ).lower()
-    has_diabetes = "diabet" in problem_text or re.search(r"\be1[01]\.", problem_text)
-    has_hypertension = "hypertension" in problem_text or re.search(r"\bi1[0-6]", problem_text)
+    has_diabetes = any(term in problem_text for term in diabetes["problem_terms"]) or re.search(diabetes["icd_pattern"], problem_text)
+    has_hypertension = any(term in problem_text for term in hypertension["problem_terms"]) or re.search(
+        hypertension["icd_pattern"], problem_text
+    )
     labs = latest_first(chart_rows(chart, "Labs"), "Result_Date")
-    one_year_ago = datetime.now() - pd.Timedelta(days=365)
+    lookback = datetime.now() - pd.Timedelta(days=int(rules.get("lookback_days", 365)))
+    goal = float(diabetes["a1c_goal_below"])
     gaps = []
     if has_diabetes:
         a1c = next((row for row in labs if "a1c" in str(row.get("Test_Name", "")).lower()), None)
         a1c_date = parse_any_date(a1c.get("Result_Date")) if a1c else None
         a1c_value = to_number(a1c.get("Result")) if a1c else None
-        if not a1c or not a1c_date or a1c_date < one_year_ago:
+        if not a1c or not a1c_date or a1c_date < lookback:
             gaps.append(("HbA1c control", "Due", "amber", "No HbA1c in the last 12 months"))
-        elif a1c_value is not None and a1c_value >= 8:
-            gaps.append(("HbA1c control", "Open", "amber", f"Latest HbA1c {a1c_value:g}% (goal < 8%)"))
+        elif a1c_value is not None and a1c_value >= goal:
+            gaps.append(("HbA1c control", "Open", "amber", f"Latest HbA1c {a1c_value:g}% (goal < {goal:g}%)"))
         else:
             gaps.append(
                 (
@@ -211,12 +219,12 @@ def care_gaps(chart):
             f"{row.get('Order_Description', '')} {row.get('Type', '')} {row.get('Department', '')}"
             for row in chart_rows(chart, "Orders_Procedures") + chart_rows(chart, "Encounters")
         ).lower()
-        if re.search(r"eye|retin|ophthalm", activity):
+        if any(term in activity for term in diabetes["eye_exam_terms"]):
             gaps.append(("Diabetic eye exam", "Met", "green", "Eye exam found in orders or encounters"))
         else:
             gaps.append(("Diabetic eye exam", "Open", "amber", "No eye exam found"))
         lab_names = " ".join(str(row.get("Test_Name", "")) for row in labs).lower()
-        if "egfr" in lab_names and "albumin" in lab_names:
+        if all(test in lab_names for test in diabetes["kidney_tests"]):
             gaps.append(("Kidney health evaluation", "Met", "green", "eGFR and uACR on file"))
         else:
             gaps.append(("Kidney health evaluation", "Due", "amber", "eGFR + uACR not both on file"))
@@ -224,10 +232,12 @@ def care_gaps(chart):
         vitals = latest_first(chart_rows(chart, "Vitals"), "Observed_Date")
         latest = vitals[0] if vitals else {}
         systolic, diastolic = to_number(latest.get("Systolic_mmHg")), to_number(latest.get("Diastolic_mmHg"))
+        sys_goal, dia_goal = hypertension["systolic_below"], hypertension["diastolic_below"]
         if systolic is None or diastolic is None:
             gaps.append(("Blood pressure control", "Due", "amber", "No recent BP reading"))
-        elif systolic < 140 and diastolic < 90:
+        elif systolic < sys_goal and diastolic < dia_goal:
             gaps.append(("Blood pressure control", "Met", "green", f"Latest BP {systolic:g}/{diastolic:g}"))
         else:
-            gaps.append(("Blood pressure control", "Open", "amber", f"Latest BP {systolic:g}/{diastolic:g} (goal < 140/90)"))
+            gaps.append(("Blood pressure control", "Open", "amber",
+                         f"Latest BP {systolic:g}/{diastolic:g} (goal < {sys_goal}/{dia_goal})"))
     return gaps

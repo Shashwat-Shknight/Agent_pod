@@ -323,3 +323,22 @@ def show_admin_dashboard():
             with st.container(border=True):
                 card_title("Selected patient")
                 st.caption("Select a patient after changing the filters.")
+    _render_policy_packs()
+
+
+def _render_policy_packs():
+    """Which policy is live: rule pack versions, HCC mapping source and payer connector."""
+    import pandas as pd
+
+    from app.rules import packs
+    from frontend import hcc
+    from frontend.payer_gateway import get_gateway
+
+    with st.expander("Policy & rule packs in use"):
+        try:
+            gateway = get_gateway().label
+        except RuntimeError as error:
+            gateway = f"Not configured: {error}"
+        st.caption(f"Payer connector: {gateway} · Risk adjustment: {hcc.source()}")
+        st.dataframe(pd.DataFrame(packs.describe()), hide_index=True, width="stretch")
+        st.caption("Packs live in app/rules/packs (or the folder named by RULES_DIR) and are re-read when the file changes.")

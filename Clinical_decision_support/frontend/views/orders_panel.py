@@ -105,7 +105,7 @@ def _render_suggestions(record, chart, editable):
         st.caption("No tests are implied by this encounter's assessment, CDS recommendations or problem list.")
     picks = []
     for item in suggestions:
-        needs_auth = item["prior_auth_candidate"] and pa.requirement(dx.BY_KEY[item["test_key"]].primary_cpt, coverage)["required"]
+        needs_auth = item["prior_auth_candidate"] and pa.requirement(dx.by_key()[item["test_key"]].primary_cpt, coverage)["required"]
         detail = " · ".join(item["reasons"][:2]) + f" — {item['due']['label']}"
         if needs_auth:
             detail += " · payer authorization will be requested automatically"
@@ -117,9 +117,9 @@ def _render_suggestions(record, chart, editable):
         if checked:
             picks.append({"test_key": item["test_key"], "suggestion": item})
     taken = {order.get("test_key") for order in dx.active_orders(record)} | {item["test_key"] for item in suggestions}
-    others = [test.key for test in dx.CATALOG if test.key not in taken]
+    others = [test.key for test in dx.catalog() if test.key not in taken]
     extra = st.multiselect(
-        "Add another test", others, format_func=lambda key: f"{dx.BY_KEY[key].name} · {dx.BY_KEY[key].category}",
+        "Add another test", others, format_func=lambda key: f"{dx.by_key()[key].name} · {dx.by_key()[key].category}",
         key=f"dx_extra_{record_key}", disabled=not editable, placeholder="Search the order catalog",
     )
     picks += [{"test_key": key} for key in extra]
@@ -138,7 +138,7 @@ def _render_orders(record, can_result):
     st.markdown('<div class="nc-label" style="margin-top:.8rem">ORDERS ON THIS ENCOUNTER</div>', unsafe_allow_html=True)
     rows = []
     for order in orders:
-        test = dx.BY_KEY.get(order.get("test_key"))
+        test = dx.by_key().get(order.get("test_key"))
         result = order.get("result") or {}
         status = order.get("status")
         label = test.performed_label if test and status == dx.PERFORMED else status
@@ -159,7 +159,7 @@ def _render_orders(record, can_result):
     if open_orders and can_result:
         with st.expander("Record specimen collection or results"):
             for order in open_orders:
-                test = dx.BY_KEY[order["test_key"]]
+                test = dx.by_key()[order["test_key"]]
                 key = f"dx_result_{order['order_id']}"
                 cols = st.columns([3, 2.2, 1.6, 1.6, 1.2], vertical_alignment="bottom")
                 cols[0].markdown(f"**{escape(order['name'])}**<br><small>{escape(test.reference or '')}</small>", unsafe_allow_html=True)

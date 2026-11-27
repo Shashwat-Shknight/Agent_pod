@@ -19,7 +19,7 @@ from frontend.clinical_text import (
     split_cds_sections,
 )
 from frontend.ehr_chart import care_gaps, medication_safety_checks, primary_coverage
-from frontend.encounter_pipeline import MASTER_INSIGHTS, get_record_insights
+from frontend.encounter_pipeline import get_record_insights, master_insights
 from frontend.settings import ANALYSIS_VERSION, APPROVED_SOAP_DIR
 from frontend.ui.components import (
     badge,
@@ -315,7 +315,7 @@ def _review_step_cds(record, is_approved, chart):
             with st.container(border=True):
                 card_title("Add Clinical Insight")
                 for index in range(st.session_state.insight_count):
-                    st.selectbox(f"Insight {index + 1}", MASTER_INSIGHTS, key=f"insight_{index}", label_visibility="collapsed")
+                    st.selectbox(f"Insight {index + 1}", master_insights(), key=f"insight_{index}", label_visibility="collapsed")
 
                 def push_selected_insights_to_note():
                     selected = [st.session_state.get(f"insight_{i}", "") for i in range(st.session_state.insight_count)]

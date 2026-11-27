@@ -1,0 +1,111 @@
+{
+ "pack": "clinical_lexicon",
+ "version": "2026.1",
+ "effective": "2026-01-01",
+ "owner": "Clinical Informatics",
+ "sources": [
+  "Keyword-to-concept lexicon used by the coding hand-off and CDS retrieval; edit to add a concept or synonym"
+ ],
+ "_note": "Keyword order matters: insights are listed in the order their keywords appear here.",
+ "insight_keywords": {
+  "diabetes": "Diabetes (Type 2)",
+  "hypertension": "Hypertension",
+  "high bp": "Hypertension",
+  "cholesterol": "Hyperlipidemia",
+  "asthma": "Asthma",
+  "arthritis": "Osteoarthritis",
+  "obesity": "Obesity",
+  "smok": "Smoking History",
+  "alcohol": "Alcohol Use",
+  "anxiety": "Anxiety",
+  "depression": "Depression",
+  "fever": "Fever",
+  "cough": "Chronic Cough",
+  "fatigue": "Fatigue",
+  "headache": "Headache",
+  "chest pain": "Chest Pain",
+  "nausea": "Nausea",
+  "color blind": "Color Blindness",
+  "complete blood count": "Complete Blood Count",
+  "cbc": "Complete Blood Count",
+  "a1c": "A1C Test",
+  "hba1c": "A1C Test",
+  "chest x-ray": "Chest X-ray",
+  "chest x ray": "Chest X-ray",
+  "chest xray": "Chest X-ray",
+  "xray": "Chest X-ray",
+  "x-ray": "Chest X-ray",
+  "x ray": "Chest X-ray",
+  "ct scan": "CT Scan",
+  "mri": "MRI",
+  "ultrasound": "Ultrasound",
+  "blood glucose": "Blood Glucose Test",
+  "physical therapy": "Physical Therapy",
+  "physiotherapy": "Physical Therapy",
+  "injection": "Injection",
+  "injections": "Injection",
+  "hyperlipidemia": "Hyperlipidemia",
+  "lipid panel": "Lipid Panel",
+  "basic metabolic panel": "Basic Metabolic Panel"
+ },
+ "manual_insight_options": [
+  "None",
+  "Diabetes (Type 2)",
+  "Hypertension",
+  "Hyperlipidemia",
+  "Asthma",
+  "Osteoarthritis",
+  "Obesity",
+  "Smoking History",
+  "Alcohol Use",
+  "Anxiety",
+  "Depression",
+  "Fever",
+  "Chronic Cough",
+  "Fatigue",
+  "Headache",
+  "Chest Pain",
+  "Nausea",
+  "Color Blindness",
+  "Complete Blood Count",
+  "A1C Test",
+  "Chest X-ray",
+  "CT Scan",
+  "MRI",
+  "Ultrasound",
+  "Blood Glucose Test"
+ ],
+ "coding_terms": {
+  "Hyperlipidemia": "Hyperlipidemia, unspecified"
+ },
+ "cds_query_expansions": [
+  {
+   "pattern": "neuropath",
+   "query": "diabetic peripheral polyneuropathy foot examination monofilament treatment"
+  },
+  {
+   "pattern": "diabet|hyperglyc|\\bdm\\b|\\bt2dm\\b",
+   "query": "type 2 diabetes mellitus glycemic control metformin HbA1c treatment"
+  },
+  {
+   "pattern": "hypertens|blood pressure",
+   "query": "hypertension treatment blood pressure goal antihypertensive ACE inhibitor"
+  },
+  {
+   "pattern": "lipid|cholesterol|statin",
+   "query": "statin therapy LDL cholesterol cardiovascular risk"
+  },
+  {
+   "pattern": "kidney|renal|ckd|egfr|albumin",
+   "query": "chronic kidney disease albuminuria eGFR"
+  },
+  {
+   "pattern": "heart failure",
+   "query": "heart failure treatment"
+  },
+  {
+   "pattern": "anemia",
+   "query": "anemia evaluation treatment"
+  }
+ ]
+}

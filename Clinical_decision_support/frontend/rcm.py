@@ -12,7 +12,9 @@ The billing screen used to stop at gross chargemaster charges. Real RCM continue
 4. Patient A/R: due date, days past due, aging bucket, follow-up priority and the next best action.
 
 Everything here is pure (no Streamlit, no I/O) so the same numbers appear on every screen and in tests.
-Rates are synthetic demo contract terms, labelled as such in the UI.
+Policy (contracts, plan designs, federal plan-year limits, statement and aging rules) comes from the
+rcm_policy and claim_edits rule packs; payer contract rates are learned from the hospital chargemaster
+when the payer appears there.
 """
 
 from __future__ import annotations
@@ -23,65 +25,32 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 
-STATEMENT_TERMS_DAYS = 30
-FIRST_STATEMENT_DELAY_DAYS = 2
-EXTRAORDINARY_COLLECTION_WAIT_DAYS = 120  # IRS 501(r): notification period before collection actions
+from app.rules import packs
 
-# Synthetic payer contracts: expected allowed amount as a share of gross charges.
-PAYER_CONTRACTS = (
-    ("athena", 0.615, "Athena PPO fee schedule (synthetic)"),
-    ("care gap", 0.553, "Care Gap Value PPO, 90% of Athena (synthetic)"),
-    ("unitedhealthcare", 0.58, "UnitedHealthcare commercial fee schedule (synthetic)"),
-    ("blue cross", 0.62, "Blue Cross commercial fee schedule (synthetic)"),
-    ("aetna", 0.60, "Aetna commercial fee schedule (synthetic)"),
-    ("cigna", 0.59, "Cigna commercial fee schedule (synthetic)"),
-    ("humana", 0.47, "Humana Medicare Advantage (synthetic)"),
-)
-CLASS_DEFAULTS = {
-    # payer class: (allowed rate, coinsurance, out-of-pocket max or None)
-    "Commercial": (0.58, 0.20, 6000.0),
-    "Medicare Advantage": (0.42, 0.20, 5000.0),
-    "Medicare": (0.38, 0.20, None),  # Original Medicare Part B has no out-of-pocket maximum
-    "Medicaid": (0.30, 0.0, None),
-    "Self-pay": (1.0, 1.0, None),
-}
-PLAN_COINSURANCE = {"HMO": 0.10, "EPO": 0.15, "POS": 0.20, "PPO": 0.20, "HDHP": 0.20}
-PLAN_OOP_MAX = {"HMO": 4500.0, "EPO": 5000.0, "POS": 5500.0, "PPO": 6000.0, "HDHP": 7000.0}
-MEDICAID_MAX_COPAY = 4.0
+EM_CODES = {f"992{n:02d}" for n in range(2, 16)}  # CPT E/M office/outpatient codes: a standard, kept in code
 
-EM_CODES = {f"992{n:02d}" for n in range(2, 16)}
-PREVENTIVE_CODES = {
-    "77067", "71271", "86803", "96127", "G0438", "G0439", "G0444", "G0442", "G0443",
-    *{f"993{n:02d}" for n in range(81, 88)}, *{f"993{n:02d}" for n in range(91, 98)},
-}
-PREVENTIVE_DX_PREFIXES = ("Z00", "Z01.4", "Z12", "Z13", "Z11", "Z71.3", "Z80")
 
-CARC_TEXT = {
-    "CO-45": "Charge exceeds fee schedule / contracted amount",
-    "PR-1": "Deductible amount",
-    "PR-2": "Coinsurance amount",
-    "PR-3": "Copayment amount",
-    "CO-197": "Precertification/authorization absent",
-    "CO-50": "Not deemed a medical necessity by the payer",
-    "CO-27": "Expenses incurred after coverage terminated",
-    "CO-16": "Claim lacks information needed for adjudication",
-}
+def policy() -> dict[str, Any]:
+    """The RCM policy pack (contracts, plan designs, plan-year limits, statement and aging policy)."""
+    return packs.load_pack("rcm_policy")
 
-# Which diagnosis prefixes support which procedure codes (sample medical-necessity edits, LCD-style).
-NECESSITY_RULES = {
-    "83036": ("E10", "E11", "E13", "O24", "R73", "Z13.1"),
-    "82043": ("E10", "E11", "E13", "N18", "I10", "R80"),
-    "82570": ("E10", "E11", "E13", "N18", "I10", "R80"),
-    "84443": ("E03", "E05", "E06", "R53", "R63", "F32", "F41", "E07"),
-    "82607": ("D51", "E53", "G62", "G63", "E11.4", "Z79.84", "R20", "R53"),
-    "82306": ("E55", "M80", "M81", "E21", "N18"),
-    "84153": ("N40", "R97", "Z12.5", "C61"),
-    "93306": ("I50", "R01", "I35", "I34", "R06", "I42", "I11"),
-    "70551": ("G43", "R51", "G45", "R42", "G35", "G40"),
-    "73721": ("M23", "S83", "M25.56", "M17"),
-    "78452": ("R07", "I20", "I25"),
-    "95810": ("G47", "R06.83"),
-}
+
+def carc_text() -> dict[str, str]:
+    return policy()["carc_text"]
+
+
+def statement_policy() -> dict[str, int]:
+    return policy()["statement_policy"]
+
+
+def year_limits(year: int) -> dict[str, Any]:
+    """Federal plan-year limits (Part B deductible, ACA and MA out-of-pocket caps, Medicaid nominal copay)."""
+    return packs.plan_year_values("rcm_policy", year)
+
+
+def necessity_rules() -> dict[str, list[str]]:
+    rules = packs.load_pack("claim_edits").get("medical_necessity") or {}
+    return {code: prefixes for code, prefixes in rules.items() if not code.startswith("_")}
 
 
 def _number(value: Any, default: float = 0.0) -> float:
@@ -136,15 +105,30 @@ def payer_class(coverage: dict[str, Any] | None) -> str:
     return "Commercial"
 
 
-def contract_for(coverage: dict[str, Any] | None) -> tuple[float, str]:
-    name = str((coverage or {}).get("Payer_Name") or "").lower()
+def contract_terms(coverage: dict[str, Any] | None, encounter_type: str = "OPD") -> dict[str, Any]:
+    """Allowed-to-charge ratio for this payer: learned from the hospital's charge lines when the payer
+    appears there (overall and per CPT), else the policy pack's contract table, else the class default."""
+    name = str((coverage or {}).get("Payer_Name") or "").strip().lower()
     klass = payer_class(coverage)
-    if klass in {"Commercial", "Medicare Advantage"}:
-        for keyword, rate, label in PAYER_CONTRACTS:
-            if keyword in name:
-                return rate, label
-    rate = CLASS_DEFAULTS[klass][0]
-    return rate, f"{klass} default fee schedule (synthetic)" if klass != "Self-pay" else "Self-pay (gross charges)"
+    if klass == "Self-pay":
+        return {"allowed_rate": 1.0, "by_cpt": {}, "label": "Self-pay (gross charges)"}
+    if name:
+        from frontend.chargemaster import payer_contract_rates
+
+        learned = payer_contract_rates(encounter_type)
+        match = learned.get(name) or next((entry for key, entry in learned.items() if key in name or name in key), None)
+        if match:
+            return {"allowed_rate": match["allowed_rate"], "by_cpt": match["by_cpt"], "label": match["source"]}
+        for contract in policy().get("payer_contracts_fallback") or []:
+            if contract["match"] in name:
+                return {"allowed_rate": contract["allowed_rate"], "by_cpt": {}, "label": contract["label"]}
+    rate = policy()["payer_classes"][klass]["allowed_rate"]
+    return {"allowed_rate": rate, "by_cpt": {}, "label": f"{klass} default fee schedule (policy pack)"}
+
+
+def contract_for(coverage: dict[str, Any] | None) -> tuple[float, str]:
+    terms = contract_terms(coverage)
+    return terms["allowed_rate"], terms["label"]
 
 
 def eligibility(coverage: dict[str, Any] | None, service_date: date) -> dict[str, str]:
@@ -195,20 +179,29 @@ def plan_benefits(
     """
     coverage = coverage or {}
     klass = payer_class(coverage)
-    rate, contract = contract_for(coverage)
+    terms = contract_terms(coverage)
+    rate, contract = terms["allowed_rate"], terms["label"]
     plan = str(coverage.get("Plan_Type") or "").strip().upper()
-    _, class_coins, class_oop = CLASS_DEFAULTS[klass]
+    defaults = policy()["payer_classes"][klass]
+    limits = year_limits(service_date.year)
+    coinsurance, oop_max = defaults["coinsurance"], defaults["oop_max"]
     if klass == "Commercial":
-        coinsurance = PLAN_COINSURANCE.get(plan, class_coins)
-        oop_max = PLAN_OOP_MAX.get(plan, class_oop)
-    else:
-        coinsurance, oop_max = class_coins, class_oop
+        design = (policy().get("commercial_plan_designs") or {}).get(plan) or {}
+        coinsurance = design.get("coinsurance", coinsurance)
+        oop_max = design.get("oop_max", oop_max)
+        if limits.get("aca_oop_max_self") is not None and oop_max is not None:
+            oop_max = min(oop_max, limits["aca_oop_max_self"])  # no plan may exceed the ACA limit
+    elif klass == "Medicare Advantage" and limits.get("ma_moop_in_network") is not None and oop_max is not None:
+        oop_max = min(oop_max, limits["ma_moop_in_network"])
     deductible = _number(coverage.get("Annual_Deductible_USD"))
     copay = _number(coverage.get("Copay_USD"))
     if klass == "Medicare":
-        copay = 0.0  # Part B: deductible then 20% coinsurance, no office-visit copay
+        # Original Medicare Part B: the federal deductible for the year, then 20% coinsurance, no copay.
+        deductible = float(limits.get("medicare_part_b_deductible", deductible))
+        coinsurance = float(limits.get("medicare_part_b_coinsurance", coinsurance))
+        copay = 0.0
     elif klass == "Medicaid":
-        deductible, copay = 0.0, min(copay, MEDICAID_MAX_COPAY)
+        deductible, copay = 0.0, min(copay, float(limits.get("medicaid_nominal_outpatient_copay", 4.0)))
     elif klass == "Self-pay":
         deductible, copay = 0.0, 0.0
     if accumulators:
@@ -239,8 +232,11 @@ def plan_benefits(
         "oop_met": money(oop_met),
         "oop_remaining": money(max(0.0, oop_max - oop_met)) if oop_max is not None else None,
         "allowed_rate": rate,
+        "allowed_rates_by_cpt": terms["by_cpt"],
         "contract": contract,
         "plan_year": service_date.year,
+        "policy_version": policy()["version"],
+        "plan_year_rules": limits.get("plan_year"),
     }
 
 
@@ -258,11 +254,12 @@ class ClaimLine:
 
 def line_kind(code: str, dx: tuple[str, ...] | list[str], primary_dx: str = "") -> str:
     code = str(code).strip().upper()
-    if code in PREVENTIVE_CODES:
+    preventive_dx = tuple(policy().get("preventive_dx_prefixes") or ())
+    if code in set(policy().get("preventive_codes") or ()):
         return "Preventive"
     if code in EM_CODES:
-        if primary_dx and primary_dx.upper().startswith(PREVENTIVE_DX_PREFIXES) and all(
-            str(item).upper().startswith(PREVENTIVE_DX_PREFIXES) for item in dx or [primary_dx]
+        if primary_dx and preventive_dx and primary_dx.upper().startswith(preventive_dx) and all(
+            str(item).upper().startswith(preventive_dx) for item in dx or [primary_dx]
         ):
             return "Preventive"
         return "Office visit"
@@ -270,7 +267,7 @@ def line_kind(code: str, dx: tuple[str, ...] | list[str], primary_dx: str = "") 
 
 
 def necessity_supported(code: str, dx_codes: list[str] | tuple[str, ...]) -> bool:
-    prefixes = NECESSITY_RULES.get(str(code).strip())
+    prefixes = tuple(necessity_rules().get(str(code).strip()) or ())
     if not prefixes:
         return True
     return any(str(item).upper().startswith(prefixes) for item in dx_codes)
@@ -279,6 +276,7 @@ def necessity_supported(code: str, dx_codes: list[str] | tuple[str, ...]) -> boo
 def adjudicate(lines: list[ClaimLine], benefits: dict[str, Any], *, primary_dx: str = "") -> dict[str, Any]:
     """Expected payer adjudication, line by line, in claim order (what the 835 should say)."""
     rate = float(benefits.get("allowed_rate") or 1.0)
+    by_cpt = benefits.get("allowed_rates_by_cpt") or {}
     coins_pct = float(benefits.get("coinsurance") or 0.0)
     remaining_deductible = float(benefits.get("remaining_deductible") or 0.0)
     oop_remaining = benefits.get("oop_remaining")
@@ -305,7 +303,7 @@ def adjudicate(lines: list[ClaimLine], benefits: dict[str, Any], *, primary_dx: 
         elif not necessity_supported(line.code, line.dx):
             row.update(denied=charge, carc=["CO-50"])
         else:
-            allowed = money(charge * rate)
+            allowed = money(charge * float(by_cpt.get(str(line.code).strip().upper(), rate)))
             row["allowed"] = allowed
             row["contractual"] = money(charge - allowed)
             if row["contractual"] > 0:
@@ -377,13 +375,10 @@ def aging_bucket(balance: float, statement_date: date | None, due_date: date | N
     days_past_due = max(0, (today - due_date).days)
     if days_past_due == 0:
         return "Current", 0
-    if days_past_due <= 30:
-        return "1-30", days_past_due
-    if days_past_due <= 60:
-        return "31-60", days_past_due
-    if days_past_due <= 90:
-        return "61-90", days_past_due
-    return "90+", days_past_due
+    for bucket in policy()["aging_buckets"]:
+        if bucket["max_days"] is None or days_past_due <= bucket["max_days"]:
+            return bucket["label"], days_past_due
+    return policy()["aging_buckets"][-1]["label"], days_past_due
 
 
 AGING_ORDER = (
@@ -396,9 +391,10 @@ def follow_up_priority(balance: float, days_past_due: int, claim_status: str) ->
         return "High"
     if balance <= 0.004:
         return "None" if balance > -0.004 else "Medium"
-    if days_past_due > 60 or balance >= 1000:
+    thresholds = policy()["follow_up_priority"]
+    if days_past_due > thresholds["high_days_past_due"] or balance >= thresholds["high_balance"]:
         return "High"
-    if days_past_due > 0 or balance >= 250:
+    if days_past_due > 0 or balance >= thresholds["medium_balance"]:
         return "Medium"
     return "Low"
 
@@ -435,7 +431,7 @@ def recommended_action(account: dict[str, Any], today: date) -> str:
         return "Call patient; offer payment plan" + ("" if balance < 1000 else " or financial-assistance screening")
     if bucket == "61-90":
         return "Screen for financial assistance; send final notice"
-    if days < EXTRAORDINARY_COLLECTION_WAIT_DAYS:
+    if days < statement_policy()["extraordinary_collection_wait_days"]:
         return "Final notice; no collection action before day 120 (IRS 501(r))"
     return "Pre-collection review (501(r) notice period met)"
 
@@ -452,7 +448,7 @@ def refresh_account(account: dict[str, Any], today: date | None = None) -> dict[
     statement = parse_date(row.get("Statement_Date"))
     due = parse_date(row.get("Payment_Due_Date"))
     if statement and not due:
-        due = statement + timedelta(days=STATEMENT_TERMS_DAYS)
+        due = statement + timedelta(days=statement_policy()["terms_days"])
         row["Payment_Due_Date"] = _iso(due)
     status = str(row.get("Claim_Status") or "")
     if status in {"Ready to submit", "Draft", ""}:
@@ -544,9 +540,10 @@ def post_remittance(account: dict[str, Any], adjudication: dict[str, Any], today
     })
     paid_already = _number(row.get("Patient_Paid_At_Discharge")) + _number(row.get("Patient_Payments"))
     if totals["patient"] - paid_already > 0.004:
-        statement = today + timedelta(days=FIRST_STATEMENT_DELAY_DAYS)
+        terms = statement_policy()
+        statement = today + timedelta(days=terms["first_statement_delay_days"])
         row["Statement_Date"] = statement.isoformat()
-        row["Payment_Due_Date"] = (statement + timedelta(days=STATEMENT_TERMS_DAYS)).isoformat()
+        row["Payment_Due_Date"] = (statement + timedelta(days=terms["terms_days"])).isoformat()
     return refresh_account(row, today)
 
 
@@ -657,9 +654,10 @@ def accounts_from_chart_claims(claims: list[dict[str, Any]], patients: dict[str,
                 adjudicated = served + timedelta(days=14)
                 account["Insurance_Adjudication_Date"] = adjudicated.isoformat()
                 if account["Patient_Responsibility"] > 0:
-                    statement = adjudicated + timedelta(days=FIRST_STATEMENT_DELAY_DAYS)
+                    terms = statement_policy()
+                    statement = adjudicated + timedelta(days=terms["first_statement_delay_days"])
                     account["Statement_Date"] = statement.isoformat()
-                    account["Payment_Due_Date"] = (statement + timedelta(days=STATEMENT_TERMS_DAYS)).isoformat()
+                    account["Payment_Due_Date"] = (statement + timedelta(days=terms["terms_days"])).isoformat()
         else:
             account["Payer_Expected_Payment"] = money(account["Payer_Expected_Payment"] + payment)
     return [refresh_account(account, today) for account in by_encounter.values()]

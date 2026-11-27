@@ -1,0 +1,24 @@
+{
+  "pack": "providers",
+  "version": "2026.1",
+  "effective": "2026-01-01",
+  "owner": "Provider Enrollment / Credentialing",
+  "sources": [
+    "Illustrative directory. NPIs below are sample values that pass the NPI check-digit rule; replace with the organization's NPPES-registered NPIs"
+  ],
+  "default_npi": "1000000004",
+  "clinicians": {
+    "Demo Provider": {"npi": "1000000004", "taxonomy": "207Q00000X", "specialty": "Family Medicine"}
+  },
+  "organizations": {
+    "VHC": {"npi": "1999999984"},
+    "Emory Healthcare": {"npi": "1234567893"}
+  },
+  "facility": {
+    "name": "NuuCare Demo",
+    "_comment": "Hospital outpatient clinic: professional claims use place of service 22 (on-campus outpatient hospital); facility claims use type of bill 131 (outpatient) or 111 (inpatient admit-through-discharge)",
+    "place_of_service": "22",
+    "bill_types": {"OPD": "131", "IPD": "111"}
+  },
+  "payer_options": ["UnitedHealthcare", "Aetna", "Blue Cross Blue Shield", "Medicare", "Medicaid"]
+}

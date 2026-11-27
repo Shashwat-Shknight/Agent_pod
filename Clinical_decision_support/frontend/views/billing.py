@@ -369,7 +369,7 @@ def _benefit_rows():
 def _carc_badges(codes):
     tones = {"CO-45": "gray", "PR-1": "amber", "PR-2": "amber", "PR-3": "blue", "CO-197": "red", "CO-50": "red", "CO-27": "red"}
     return " ".join(
-        f'<span title="{escape(rcm.CARC_TEXT.get(code, code))}">{badge(code, tones.get(code, "gray"))}</span>' for code in codes
+        f'<span title="{escape(rcm.carc_text().get(code, code))}">{badge(code, tones.get(code, "gray"))}</span>' for code in codes
     )
 
 
@@ -443,7 +443,7 @@ def _render_expected_reimbursement(record, benefits, expected, collect_key):
             reasons = sorted({code for line in expected["denied_lines"] for code in line["carc"]})
             render_banner(
                 f"{len(expected['denied_lines'])} line(s) would be denied: " + ", ".join(reasons),
-                " · ".join(f"{code}: {rcm.CARC_TEXT.get(code, '')}" for code in reasons)
+                " · ".join(f"{code}: {rcm.carc_text().get(code, '')}" for code in reasons)
                 + ". Fix the authorization, diagnosis or coverage before sending, or the line goes to the denial work queue.",
                 tone="danger",
                 icon="&#9888;",

@@ -7,22 +7,13 @@ try:
 except ModuleNotFoundError:
     from chargemaster import assign_revenue_codes
 
-SAMPLE_NCCI_CONFLICTS = {
-    frozenset(("99213", "99214")),
-    frozenset(("99213", "99215")),
-    frozenset(("99214", "99215")),
-}
-SAMPLE_MUE_LIMITS = {
-    "70450": 1,
-    "71045": 1,
-    "80053": 1,
-    "99213": 1,
-    "99214": 1,
-    "99215": 1,
-}
-SAMPLE_LCD_DIAGNOSIS_PREFIXES = {
-    "70450": ("R51", "R29", "I63", "S09"),
-}
+def _edits():
+    """NCCI pairs, MUE limits and LCD-style diagnosis lists from the claim_edits rule pack."""
+    from app.rules import packs
+
+    pack = packs.load_pack("claim_edits")
+    necessity = {code: tuple(prefixes) for code, prefixes in (pack.get("medical_necessity") or {}).items() if not code.startswith("_")}
+    return {frozenset(pair) for pair in pack.get("ncci_pairs") or []}, dict(pack.get("mue_limits") or {}), necessity
 
 
 def _text(value):
@@ -277,10 +268,11 @@ def validate_claim(claim, document_results=None, code_set_validator=None):
             "WARNING",
         )
 
+    ncci_pairs, mue_limits, lcd_prefixes = _edits()
     normalized_codes = {re.sub(r"\D", "", code) for code in cpt_codes}
     ncci_conflicts = [
         sorted(pair)
-        for pair in SAMPLE_NCCI_CONFLICTS
+        for pair in ncci_pairs
         if pair.issubset(normalized_codes)
     ]
     if ncci_conflicts:
@@ -308,7 +300,7 @@ def validate_claim(claim, document_results=None, code_set_validator=None):
             line_codes = _codes(line_codes)
         for raw_code in line_codes:
             code = _text(raw_code)
-            limit = SAMPLE_MUE_LIMITS.get(re.sub(r"\D", "", code))
+            limit = mue_limits.get(re.sub(r"\D", "", code))
             units = _number(line.get("Quantity"))
             if limit is None or units is None:
                 continue
@@ -326,7 +318,7 @@ def validate_claim(claim, document_results=None, code_set_validator=None):
             )
 
     for code in cpt_codes:
-        prefixes = SAMPLE_LCD_DIAGNOSIS_PREFIXES.get(re.sub(r"\D", "", code))
+        prefixes = lcd_prefixes.get(re.sub(r"\D", "", code))
         if prefixes is None:
             continue
         diagnosis_supported = any(

@@ -96,7 +96,12 @@ def generate_837(bill, claim_type=None, source=""):
     patient_id = _element(patient.get("Member ID") or patient.get("MRN") or patient.get("Patient ID"))
     patient_last, patient_first = _name_parts(patient.get("Patient Name"))
     total = _amount(bill["gross"])
-    facility_code = "21" if claim_type == "837P" else "11"
+    # CLM05-1: place of service for 837P; the first two digits of the type of bill for 837I.
+    if claim_type == "837P":
+        facility_code = _element(bill.get("place_of_service") or patient.get("Place of Service") or "22")
+    else:
+        facility_code = _element(bill.get("bill_type") or patient.get("Bill Type") or
+                                 ("111" if determine_encounter_type(bill, source) == "IPD" else "131"))[:2]
     today = datetime.now()
     interchange_date = today.strftime("%y%m%d")
     interchange_time = today.strftime("%H%M")

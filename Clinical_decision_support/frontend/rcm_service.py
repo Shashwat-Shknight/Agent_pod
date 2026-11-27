@@ -17,6 +17,7 @@ from frontend import rcm
 from frontend.api_client import HealthcareApiClient
 from frontend.ehr_chart import primary_coverage
 from frontend.orders_service import service_date
+from frontend.payer_gateway import get_gateway
 
 MAX_POINTERS = 4  # 837P allows four diagnosis pointers per service line
 
@@ -56,7 +57,7 @@ def encounter_benefits(record: dict[str, Any], chart: dict[str, Any] | None,
     accumulators = rcm.accumulators_from(rows, str(coverage.get("Member_ID") or ""), dos.year)
     prior = 0.0 if accumulators else rcm.history_liability(
         chart, str(record.get("ehr_patient_id") or ""), dos.year, exclude_encounter=encounter_id)
-    return rcm.plan_benefits(coverage, dos, prior_liability=prior, accumulators=accumulators)
+    return get_gateway().eligibility(coverage, dos, prior_liability=prior, accumulators=accumulators)
 
 
 def claim_lines(priced_rows: list[dict[str, Any]], order_lines: list[dict[str, Any]], dx_codes: list[str]) -> list[dict[str, Any]]:
@@ -91,7 +92,7 @@ def adjudicate_lines(lines: list[dict[str, Any]], benefits: dict[str, Any], dx_c
     claim = [rcm.ClaimLine(line["code"], line["description"], line["charge"], tuple(line.get("dx") or ()),
                            bool(line.get("auth_required")), str(line.get("auth_number") or ""), line.get("units") or 1.0)
              for line in lines]
-    return rcm.adjudicate(claim, benefits, primary_dx=dx_codes[0] if dx_codes else "")
+    return get_gateway().remittance(claim, benefits, primary_dx=dx_codes[0] if dx_codes else "")
 
 
 def save_send_to_rcm(record: dict[str, Any], chart: dict[str, Any] | None, benefits: dict[str, Any],
@@ -169,15 +170,18 @@ def submit_claims(account: dict[str, Any], claims: list[dict[str, Any]], *, clie
                   now: datetime | None = None) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Send the encounter's claims to the clearinghouse (837); 277CA acceptance is checked on the spot."""
     now = now or datetime.now()
+    if str(account.get("Claim_Status") or "") not in {"Ready to submit", "Rejected", "Draft", ""}:
+        raise ValueError(f"Account {account.get('Account_ID')} is already {account.get('Claim_Status')}; it cannot be submitted again.")
+    if not claims:
+        raise ValueError("Generate the claims for this encounter before submitting them.")
+    gateway = get_gateway()
     updated = []
     rejected = []
     for claim in claims:
-        info = claim.get("Patient Information") or {}
-        problems = [label for label, value in (("subscriber/member ID", info.get("Member ID")), ("payer", info.get("Payer")),
-                                               ("diagnosis code", claim.get("ICD-10 Codes"))) if not value]
+        accepted, problems = gateway.acknowledge(claim)
         history = list(claim.get("Lifecycle") or [])
         history.append({"at": now.strftime("%Y-%m-%d %H:%M"), "event": "Submitted (837 to clearinghouse)"})
-        if problems:
+        if not accepted:
             status = "Rejected"
             history.append({"at": now.strftime("%Y-%m-%d %H:%M"), "event": "277CA rejected: missing " + ", ".join(problems)})
             rejected.append(claim["Claim ID"])
@@ -199,6 +203,9 @@ def post_remittance(record: dict[str, Any], chart: dict[str, Any] | None, accoun
     """Apply the payer's 835 for every claim of the encounter, move accumulators, statement the patient."""
     client = client or HealthcareApiClient()
     today = today or date.today()
+    if str(account.get("Claim_Status") or "") != "Accepted":
+        # Idempotent: a remittance is posted once, after the payer accepted the claim.
+        raise ValueError(f"Account {account.get('Account_ID')} is {account.get('Claim_Status')}; a remittance needs an accepted claim.")
     estimate = record.get("bill_estimate") or {}
     lines = estimate.get("claim_lines") or []
     if not lines:

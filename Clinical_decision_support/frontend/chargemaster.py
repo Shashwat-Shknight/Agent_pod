@@ -102,6 +102,86 @@ def supplemental_item(code: Any) -> dict[str, Any] | None:
     return supplemental_cdm().get(_normalize_code(code))
 
 
+def _workbook_signature() -> tuple[str, float] | None:
+    source = _configured_path()
+    if source is None or not source.is_file() or not _is_structured_chargemaster(source):
+        return None
+    return str(source), source.stat().st_mtime
+
+
+@lru_cache(maxsize=4)
+def _contract_rates(path: str, _mtime: float, sheet: str) -> dict[str, dict[str, Any]]:
+    try:
+        frame = _read_structured_sheet(Path(path), sheet)
+    except (OSError, ValueError, KeyError, json.JSONDecodeError, ImportError):
+        return {}
+    payer_col = _find_column(frame, {"payer"})
+    code_col = _find_column(frame, _CODE_ALIASES)
+    gross_col = _find_column(frame, {"extendedgross", "grosscharge", "extendedgrossusd"})
+    allowed_col = _find_column(frame, {"expectedallowed", "expectedallowedusd", "allowedamount"})
+    if payer_col is None or gross_col is None or allowed_col is None:
+        return {}
+    rates: dict[str, dict[str, Any]] = {}
+    for _, row in frame.iterrows():
+        payer = _clean_cell(row[payer_col])
+        gross, allowed = _parse_rate(_clean_cell(row[gross_col])), _parse_rate(_clean_cell(row[allowed_col]))
+        if not payer or not gross or allowed is None:
+            continue
+        entry = rates.setdefault(payer.casefold(), {"payer": payer, "gross": Decimal("0"), "allowed": Decimal("0"), "lines": 0, "by_cpt": {}})
+        entry["gross"] += gross
+        entry["allowed"] += allowed
+        entry["lines"] += 1
+        code = _normalize_code(row[code_col]) if code_col is not None else ""
+        if code:
+            cpt = entry["by_cpt"].setdefault(code, [Decimal("0"), Decimal("0")])
+            cpt[0] += gross
+            cpt[1] += allowed
+    return {
+        key: {
+            "payer": entry["payer"],
+            "allowed_rate": round(float(entry["allowed"] / entry["gross"]), 4),
+            "by_cpt": {code: round(float(allowed / gross), 4) for code, (gross, allowed) in entry["by_cpt"].items() if gross},
+            "lines": entry["lines"],
+            "source": f"Hospital chargemaster {sheet}: expected allowed ÷ gross over {entry['lines']} charge lines",
+        }
+        for key, entry in rates.items() if entry["gross"]
+    }
+
+
+def payer_contract_rates(encounter_type: str = "OPD") -> dict[str, dict[str, Any]]:
+    """Contracted allowed-to-charge ratios per payer (and per CPT), learned from the hospital's own charge lines.
+
+    Keyed by lower-case payer name. Empty when no structured chargemaster is configured, so callers
+    fall back to the RCM policy pack.
+    """
+    signature = _workbook_signature()
+    if signature is None:
+        return {}
+    return _contract_rates(signature[0], signature[1], _encounter_sheet(encounter_type))
+
+
+@lru_cache(maxsize=4)
+def _cdm_prior_auth(path: str, _mtime: float) -> frozenset[str]:
+    try:
+        cdm = _read_structured_sheet(Path(path), "CDM Master")
+    except (OSError, ValueError, KeyError, json.JSONDecodeError, ImportError):
+        return frozenset()
+    code_col = _find_column(cdm, {"cpthcpcs", "cpthcpcscode"})
+    flag_col = _find_column(cdm, {"priorauthflag", "priorauthorization", "authrequired"})
+    if code_col is None or flag_col is None:
+        return frozenset()
+    return frozenset(
+        _normalize_code(row[code_col]) for _, row in cdm.iterrows()
+        if _normalize_code(row[code_col]) and _clean_cell(row[flag_col]).casefold() in {"yes", "y", "true", "required"}
+    )
+
+
+def cdm_prior_auth_codes() -> frozenset[str]:
+    """CPT/HCPCS codes the hospital CDM flags as needing prior authorization."""
+    signature = _workbook_signature()
+    return _cdm_prior_auth(*signature) if signature else frozenset()
+
+
 def _revenue_code(value: Any) -> str:
     text = _clean_cell(value)
     match = re.fullmatch(r"(\d+)(?:\.0+)?", text)

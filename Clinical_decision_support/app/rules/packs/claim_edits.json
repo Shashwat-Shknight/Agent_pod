@@ -1,0 +1,43 @@
+{
+  "pack": "claim_edits",
+  "version": "2026.1",
+  "effective": "2026-01-01",
+  "owner": "Revenue Integrity",
+  "sources": [
+    "Sample edits modelled on CMS NCCI procedure-to-procedure and MUE tables and Medicare LCD diagnosis lists; replace with licensed NCCI/MUE quarterly files and payer LCD/NCD policies in production"
+  ],
+  "medical_necessity": {
+    "_comment": "CPT/HCPCS -> ICD-10-CM prefixes that support it. A service without a supporting diagnosis is expected to deny (CARC 50).",
+    "83036": ["E10", "E11", "E13", "O24", "R73", "Z13.1"],
+    "82043": ["E10", "E11", "E13", "N18", "I10", "R80"],
+    "82570": ["E10", "E11", "E13", "N18", "I10", "R80"],
+    "84443": ["E03", "E05", "E06", "E07", "R53", "R63", "F32", "F41"],
+    "82607": ["D51", "E53", "G62", "G63", "E11.4", "Z79.84", "R20", "R53"],
+    "82306": ["E55", "M80", "M81", "E21", "N18"],
+    "84153": ["N40", "R97", "Z12.5", "C61"],
+    "93306": ["I50", "R01", "I35", "I34", "R06", "I42", "I11"],
+    "70450": ["R51", "R29", "I63", "S09", "S06", "G45", "R42", "R55"],
+    "70551": ["G43", "R51", "G45", "R42", "G35", "G40"],
+    "73721": ["M23", "S83", "M25.56", "M17"],
+    "78452": ["R07", "I20", "I25"],
+    "95810": ["G47", "R06.83"]
+  },
+  "ncci_pairs": [
+    ["99213", "99214"],
+    ["99213", "99215"],
+    ["99214", "99215"],
+    ["80053", "80048"],
+    ["93000", "93005"]
+  ],
+  "mue_limits": {
+    "70450": 1,
+    "71045": 1,
+    "80053": 1,
+    "80048": 1,
+    "83036": 1,
+    "36415": 1,
+    "99213": 1,
+    "99214": 1,
+    "99215": 1
+  }
+}

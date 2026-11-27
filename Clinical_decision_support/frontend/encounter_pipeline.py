@@ -42,78 +42,26 @@ except ModuleNotFoundError:
     is_explicitly_performed = None
 
 
-MASTER_INSIGHTS = [
-    "None",
-    "Diabetes (Type 2)",
-    "Hypertension",
-    "Hyperlipidemia",
-    "Asthma",
-    "Osteoarthritis",
-    "Obesity",
-    "Smoking History",
-    "Alcohol Use",
-    "Anxiety",
-    "Depression",
-    "Fever",
-    "Chronic Cough",
-    "Fatigue",
-    "Headache",
-    "Chest Pain",
-    "Nausea",
-    "Color Blindness",
-    "Complete Blood Count",
-    "A1C Test",
-    "Chest X-ray",
-    "CT Scan",
-    "MRI",
-    "Ultrasound",
-    "Blood Glucose Test",
-]
+def lexicon():
+    """The clinical_lexicon rule pack: keyword -> concept map, manual insight options, coding terms."""
+    from app.rules import packs
+
+    return packs.load_pack("clinical_lexicon")
+
+
+def master_insights():
+    return list(lexicon()["manual_insight_options"])
+
+
+def __getattr__(name):
+    if name == "MASTER_INSIGHTS":
+        return master_insights()
+    raise AttributeError(name)
 
 
 def get_detected_insights(transcript_text):
     text = (transcript_text or "").lower()
-    keyword_map = {
-        "diabetes": "Diabetes (Type 2)",
-        "hypertension": "Hypertension",
-        "high bp": "Hypertension",
-        "cholesterol": "Hyperlipidemia",
-        "asthma": "Asthma",
-        "arthritis": "Osteoarthritis",
-        "obesity": "Obesity",
-        "smok": "Smoking History",
-        "alcohol": "Alcohol Use",
-        "anxiety": "Anxiety",
-        "depression": "Depression",
-        "fever": "Fever",
-        "cough": "Chronic Cough",
-        "fatigue": "Fatigue",
-        "headache": "Headache",
-        "chest pain": "Chest Pain",
-        "nausea": "Nausea",
-        "color blind": "Color Blindness",
-        "complete blood count": "Complete Blood Count",
-        "cbc": "Complete Blood Count",
-        "a1c": "A1C Test",
-        "hba1c": "A1C Test",
-        "chest x-ray": "Chest X-ray",
-        "chest x ray": "Chest X-ray",
-        "chest xray": "Chest X-ray",
-        "xray": "Chest X-ray",
-        "x-ray": "Chest X-ray",
-        "x ray": "Chest X-ray",
-        "ct scan": "CT Scan",
-        "mri": "MRI",
-        "ultrasound": "Ultrasound",
-        "blood glucose": "Blood Glucose Test",
-        "physical therapy": "Physical Therapy",
-        "physiotherapy": "Physical Therapy",
-        "injection": "Injection",
-        "injections": "Injection",
-        "hyperlipidemia": "Hyperlipidemia",
-        "lipid panel": "Lipid Panel",
-        "basic metabolic panel": "Basic Metabolic Panel",
-    }
+    keyword_map = lexicon()["insight_keywords"]
     insights = list(
         dict.fromkeys(value for keyword, value in keyword_map.items() if keyword in text and _has_affirmed_mention(text, keyword))
     )
@@ -173,11 +121,8 @@ def _specific_diabetes(insights, text):
 
 
 # Insight labels shown to clinicians -> wording that matches the official ICD-10-CM description.
-CODING_TERMS = {"Hyperlipidemia": "Hyperlipidemia, unspecified"}
-
-
 def coding_term(item):
-    return CODING_TERMS.get(item, item)
+    return (lexicon().get("coding_terms") or {}).get(item, item)
 
 
 def get_record_insights(record):

@@ -1,0 +1,1332 @@
+{
+ "pack": "diagnostic_catalog",
+ "version": "2026.1",
+ "effective": "2026-01-01",
+ "owner": "Clinical Informatics",
+ "sources": [
+  "CPT codes (AMA), LOINC codes (Regenstrief), adult reference ranges as typically reported by US reference laboratories",
+  "Monitoring intervals: ADA Standards of Care 2026 (A1c every 3 months when not at goal; annual UACR, eGFR and retinal exam), USPSTF screening intervals",
+  "Edit here to add a test, change a range or a repeat interval; no code change needed"
+ ],
+ "panel_components": {
+  "lipid": [
+   "2093-3",
+   "13457-7",
+   "2089-1",
+   "2085-9",
+   "2571-8"
+  ],
+  "bmp": [
+   "2345-7",
+   "2160-0",
+   "2823-3",
+   "2951-2"
+  ],
+  "cmp": [
+   "1742-6",
+   "1920-8",
+   "1751-7"
+  ],
+  "cbc": [
+   "718-7",
+   "6690-2",
+   "777-3",
+   "4544-3"
+  ],
+  "uacr": [
+   "14959-1",
+   "32294-1"
+  ],
+  "a1c": [
+   "17856-6"
+  ]
+ },
+ "non_specific_findings": [
+  "bleeding",
+  "edema",
+  "fatigue",
+  "fever",
+  "infection",
+  "low mood",
+  "numbness",
+  "prostate",
+  "thyroid",
+  "tingling",
+  "unexplained weight"
+ ],
+ "tests": [
+  {
+   "key": "a1c",
+   "name": "Hemoglobin A1c",
+   "category": "Laboratory",
+   "cpts": [
+    "83036"
+   ],
+   "loinc": "4548-4",
+   "specimen": "Blood",
+   "unit": "%",
+   "low": 4.0,
+   "high": 5.6,
+   "reference": "4.0-5.6 %",
+   "indications": [
+    "E10",
+    "E11",
+    "E13",
+    "O24",
+    "R73",
+    "Z13.1"
+   ],
+   "keywords": [
+    "a1c",
+    "hba1c",
+    "hemoglobin a1c",
+    "glycated hemoglobin"
+   ],
+   "conditions": [
+    "diabetes",
+    "prediabetes",
+    "hyperglycemia",
+    "glycemic control"
+   ],
+   "interval_days": 90,
+   "chronic_monitoring": true,
+   "point_of_care": true,
+   "prior_auth": false
+  },
+  {
+   "key": "lipid",
+   "name": "Lipid panel",
+   "category": "Laboratory",
+   "cpts": [
+    "80061"
+   ],
+   "loinc": "24331-1",
+   "specimen": "Blood",
+   "unit": "mg/dL LDL",
+   "low": null,
+   "high": 100.0,
+   "reference": "LDL < 100 mg/dL",
+   "indications": [
+    "E78",
+    "E11",
+    "E10",
+    "I10",
+    "I25",
+    "I63",
+    "Z13.220"
+   ],
+   "keywords": [
+    "lipid panel",
+    "lipid profile",
+    "fasting lipid",
+    "ldl",
+    "cholesterol panel"
+   ],
+   "conditions": [
+    "hyperlipidemia",
+    "dyslipidemia",
+    "high cholesterol",
+    "hypercholesterolemia",
+    "statin"
+   ],
+   "interval_days": 180,
+   "chronic_monitoring": true,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "bmp",
+   "name": "Basic metabolic panel",
+   "category": "Laboratory",
+   "cpts": [
+    "80048"
+   ],
+   "loinc": "51990-0",
+   "specimen": "Blood",
+   "unit": "mg/dL creatinine",
+   "low": 0.6,
+   "high": 1.3,
+   "reference": "Creatinine 0.6-1.3 mg/dL",
+   "indications": [
+    "I10",
+    "N18",
+    "E11",
+    "E10",
+    "E86",
+    "I50",
+    "Z79.899"
+   ],
+   "keywords": [
+    "basic metabolic panel",
+    "bmp",
+    "electrolytes",
+    "renal function",
+    "kidney function",
+    "serum creatinine",
+    "egfr",
+    "potassium level"
+   ],
+   "conditions": [
+    "hypertension",
+    "chronic kidney disease",
+    "ckd",
+    "dehydration",
+    "heart failure"
+   ],
+   "interval_days": 180,
+   "chronic_monitoring": true,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "cmp",
+   "name": "Comprehensive metabolic panel",
+   "category": "Laboratory",
+   "cpts": [
+    "80053"
+   ],
+   "loinc": "24323-8",
+   "specimen": "Blood",
+   "unit": "U/L ALT",
+   "low": 7.0,
+   "high": 56.0,
+   "reference": "ALT 7-56 U/L",
+   "indications": [
+    "K70",
+    "K75",
+    "K76",
+    "R74",
+    "E11",
+    "R53"
+   ],
+   "keywords": [
+    "comprehensive metabolic panel",
+    "cmp",
+    "liver function test",
+    "liver enzymes",
+    "lfts"
+   ],
+   "conditions": [
+    "fatty liver",
+    "hepatitis",
+    "elevated liver enzymes"
+   ],
+   "interval_days": 180,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "cbc",
+   "name": "Complete blood count with differential",
+   "category": "Laboratory",
+   "cpts": [
+    "85025"
+   ],
+   "loinc": "58410-2",
+   "specimen": "Blood",
+   "unit": "g/dL hemoglobin",
+   "low": 12.0,
+   "high": 17.5,
+   "reference": "Hemoglobin 12.0-17.5 g/dL",
+   "indications": [
+    "D50",
+    "D51",
+    "D53",
+    "D63",
+    "D64",
+    "R53",
+    "R50",
+    "J18",
+    "R71"
+   ],
+   "keywords": [
+    "cbc",
+    "complete blood count",
+    "blood count",
+    "hemoglobin level",
+    "white count"
+   ],
+   "conditions": [
+    "anemia",
+    "fatigue",
+    "pneumonia",
+    "infection",
+    "bleeding",
+    "fever"
+   ],
+   "interval_days": 30,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "tsh",
+   "name": "Thyroid stimulating hormone (TSH)",
+   "category": "Laboratory",
+   "cpts": [
+    "84443"
+   ],
+   "loinc": "3016-3",
+   "specimen": "Blood",
+   "unit": "mIU/L",
+   "low": 0.4,
+   "high": 4.0,
+   "reference": "0.4-4.0 mIU/L",
+   "indications": [
+    "E03",
+    "E05",
+    "E06",
+    "R53",
+    "R63",
+    "F32",
+    "F41"
+   ],
+   "keywords": [
+    "tsh",
+    "thyroid function",
+    "thyroid panel"
+   ],
+   "conditions": [
+    "hypothyroidism",
+    "hyperthyroidism",
+    "thyroid",
+    "unexplained weight",
+    "fatigue"
+   ],
+   "interval_days": 180,
+   "chronic_monitoring": true,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "uacr",
+   "name": "Urine albumin-to-creatinine ratio",
+   "category": "Laboratory",
+   "cpts": [
+    "82043",
+    "82570"
+   ],
+   "loinc": "9318-7",
+   "specimen": "Urine",
+   "unit": "mg/g",
+   "low": null,
+   "high": 30.0,
+   "reference": "< 30 mg/g",
+   "indications": [
+    "E11",
+    "E10",
+    "E13",
+    "N18",
+    "I10"
+   ],
+   "keywords": [
+    "albumin-to-creatinine",
+    "albumin to creatinine",
+    "uacr",
+    "microalbumin",
+    "urine albumin",
+    "albuminuria"
+   ],
+   "conditions": [
+    "diabetic nephropathy",
+    "diabetic kidney",
+    "chronic kidney disease"
+   ],
+   "interval_days": 365,
+   "chronic_monitoring": true,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "ua",
+   "name": "Urinalysis",
+   "category": "Laboratory",
+   "cpts": [
+    "81003"
+   ],
+   "loinc": "24357-6",
+   "specimen": "Urine",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Negative",
+   "indications": [
+    "N39.0",
+    "R30",
+    "R31",
+    "R35",
+    "N18",
+    "N30"
+   ],
+   "keywords": [
+    "urinalysis",
+    "urine dipstick",
+    "urine analysis"
+   ],
+   "conditions": [
+    "urinary tract infection",
+    "uti",
+    "dysuria",
+    "hematuria",
+    "frequent urination"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": true,
+   "prior_auth": false
+  },
+  {
+   "key": "b12",
+   "name": "Vitamin B12",
+   "category": "Laboratory",
+   "cpts": [
+    "82607"
+   ],
+   "loinc": "2132-9",
+   "specimen": "Blood",
+   "unit": "pg/mL",
+   "low": 200.0,
+   "high": 900.0,
+   "reference": "200-900 pg/mL",
+   "indications": [
+    "D51",
+    "E53.8",
+    "G62",
+    "G63",
+    "E11.4",
+    "Z79.84",
+    "R20",
+    "R53"
+   ],
+   "keywords": [
+    "vitamin b12",
+    "b12 level",
+    "cobalamin"
+   ],
+   "conditions": [
+    "neuropathy",
+    "numbness",
+    "tingling",
+    "macrocytic"
+   ],
+   "interval_days": 365,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "ferritin",
+   "name": "Ferritin",
+   "category": "Laboratory",
+   "cpts": [
+    "82728"
+   ],
+   "loinc": "2276-4",
+   "specimen": "Blood",
+   "unit": "ng/mL",
+   "low": 30.0,
+   "high": 400.0,
+   "reference": "30-400 ng/mL",
+   "indications": [
+    "D50",
+    "D64",
+    "R53",
+    "E83.1"
+   ],
+   "keywords": [
+    "ferritin",
+    "iron studies",
+    "iron panel"
+   ],
+   "conditions": [
+    "iron deficiency",
+    "anemia"
+   ],
+   "interval_days": 90,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "vitd",
+   "name": "Vitamin D, 25-hydroxy",
+   "category": "Laboratory",
+   "cpts": [
+    "82306"
+   ],
+   "loinc": "62292-8",
+   "specimen": "Blood",
+   "unit": "ng/mL",
+   "low": 30.0,
+   "high": 100.0,
+   "reference": "30-100 ng/mL",
+   "indications": [
+    "E55",
+    "M81",
+    "M80",
+    "E21"
+   ],
+   "keywords": [
+    "vitamin d level",
+    "25-hydroxy",
+    "vitamin d"
+   ],
+   "conditions": [
+    "osteoporosis",
+    "osteopenia"
+   ],
+   "interval_days": 365,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "psa",
+   "name": "Prostate specific antigen (PSA)",
+   "category": "Laboratory",
+   "cpts": [
+    "84153"
+   ],
+   "loinc": "2857-1",
+   "specimen": "Blood",
+   "unit": "ng/mL",
+   "low": null,
+   "high": 4.0,
+   "reference": "< 4.0 ng/mL",
+   "indications": [
+    "N40",
+    "R97.2",
+    "Z12.5",
+    "C61"
+   ],
+   "keywords": [
+    "psa",
+    "prostate specific antigen",
+    "prostate-specific antigen"
+   ],
+   "conditions": [
+    "benign prostatic hyperplasia",
+    "bph",
+    "prostate"
+   ],
+   "interval_days": 365,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "troponin",
+   "name": "Troponin, quantitative",
+   "category": "Laboratory",
+   "cpts": [
+    "84484"
+   ],
+   "loinc": "10839-9",
+   "specimen": "Blood",
+   "unit": "ng/mL",
+   "low": null,
+   "high": 0.04,
+   "reference": "< 0.04 ng/mL",
+   "indications": [
+    "R07",
+    "I20",
+    "I21",
+    "I24"
+   ],
+   "keywords": [
+    "troponin",
+    "cardiac enzymes"
+   ],
+   "conditions": [
+    "acute coronary syndrome"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "bnp",
+   "name": "B-type natriuretic peptide (BNP)",
+   "category": "Laboratory",
+   "cpts": [
+    "83880"
+   ],
+   "loinc": "30934-4",
+   "specimen": "Blood",
+   "unit": "pg/mL",
+   "low": null,
+   "high": 100.0,
+   "reference": "< 100 pg/mL",
+   "indications": [
+    "I50",
+    "R06.0",
+    "R60",
+    "I11.0"
+   ],
+   "keywords": [
+    "bnp",
+    "natriuretic peptide"
+   ],
+   "conditions": [
+    "heart failure",
+    "edema"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "ddimer",
+   "name": "D-dimer",
+   "category": "Laboratory",
+   "cpts": [
+    "85379"
+   ],
+   "loinc": "48065-7",
+   "specimen": "Blood",
+   "unit": "ng/mL FEU",
+   "low": null,
+   "high": 500.0,
+   "reference": "< 500 ng/mL FEU",
+   "indications": [
+    "I26",
+    "I82",
+    "R07",
+    "R06"
+   ],
+   "keywords": [
+    "d-dimer",
+    "d dimer"
+   ],
+   "conditions": [
+    "pulmonary embolism",
+    "deep vein thrombosis",
+    "dvt"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "inr",
+   "name": "Prothrombin time / INR",
+   "category": "Laboratory",
+   "cpts": [
+    "85610"
+   ],
+   "loinc": "6301-6",
+   "specimen": "Blood",
+   "unit": "INR",
+   "low": 2.0,
+   "high": 3.0,
+   "reference": "2.0-3.0 on warfarin",
+   "indications": [
+    "Z79.01",
+    "I48",
+    "I26",
+    "I82",
+    "D68"
+   ],
+   "keywords": [
+    "inr",
+    "pt/inr",
+    "prothrombin time"
+   ],
+   "conditions": [
+    "warfarin",
+    "anticoagulation",
+    "atrial fibrillation"
+   ],
+   "interval_days": 28,
+   "chronic_monitoring": true,
+   "point_of_care": true,
+   "prior_auth": false
+  },
+  {
+   "key": "hcv",
+   "name": "Hepatitis C antibody",
+   "category": "Screening",
+   "cpts": [
+    "86803"
+   ],
+   "loinc": "16128-1",
+   "specimen": "Blood",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Nonreactive",
+   "indications": [
+    "Z11.59",
+    "B18.2",
+    "Z72.89"
+   ],
+   "keywords": [
+    "hepatitis c",
+    "hcv antibody",
+    "hcv screening"
+   ],
+   "conditions": [
+    "hepatitis c"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "strep",
+   "name": "Rapid strep A test",
+   "category": "Laboratory",
+   "cpts": [
+    "87880"
+   ],
+   "loinc": "78012-2",
+   "specimen": "Swab",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Negative",
+   "indications": [
+    "J02",
+    "J03"
+   ],
+   "keywords": [
+    "rapid strep",
+    "strep test",
+    "strep a"
+   ],
+   "conditions": [
+    "pharyngitis",
+    "sore throat",
+    "tonsillitis"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": true,
+   "prior_auth": false
+  },
+  {
+   "key": "flu",
+   "name": "Rapid influenza test",
+   "category": "Laboratory",
+   "cpts": [
+    "87804"
+   ],
+   "loinc": "80382-5",
+   "specimen": "Swab",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Negative",
+   "indications": [
+    "J09",
+    "J10",
+    "J11",
+    "R50"
+   ],
+   "keywords": [
+    "influenza test",
+    "flu test",
+    "rapid influenza",
+    "flu swab"
+   ],
+   "conditions": [
+    "influenza"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": true,
+   "prior_auth": false
+  },
+  {
+   "key": "ecg",
+   "name": "Electrocardiogram (12-lead)",
+   "category": "Cardiology",
+   "cpts": [
+    "93000"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Normal sinus rhythm",
+   "indications": [
+    "R07",
+    "I48",
+    "I10",
+    "R00",
+    "R55",
+    "I25",
+    "R94.31",
+    "I50"
+   ],
+   "keywords": [
+    "ecg",
+    "ekg",
+    "electrocardiogram"
+   ],
+   "conditions": [
+    "chest pain",
+    "palpitations",
+    "syncope",
+    "atrial fibrillation",
+    "arrhythmia"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": true,
+   "prior_auth": false
+  },
+  {
+   "key": "cxr",
+   "name": "Chest X-ray, 2 views",
+   "category": "Imaging",
+   "cpts": [
+    "71046"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "No acute cardiopulmonary process",
+   "indications": [
+    "J18",
+    "R05",
+    "R06",
+    "J44",
+    "J45",
+    "R07",
+    "R50"
+   ],
+   "keywords": [
+    "chest x-ray",
+    "chest x ray",
+    "chest radiograph",
+    "cxr"
+   ],
+   "conditions": [
+    "pneumonia",
+    "persistent cough",
+    "shortness of breath",
+    "dyspnea"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "spirometry",
+   "name": "Spirometry with bronchodilator",
+   "category": "Pulmonary",
+   "cpts": [
+    "94060"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "FEV1/FVC >= 0.70",
+   "indications": [
+    "J44",
+    "J45",
+    "R06",
+    "R05"
+   ],
+   "keywords": [
+    "spirometry",
+    "pulmonary function test",
+    "pft"
+   ],
+   "conditions": [
+    "copd",
+    "asthma",
+    "wheezing"
+   ],
+   "interval_days": 365,
+   "chronic_monitoring": true,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "echo",
+   "name": "Echocardiogram (transthoracic)",
+   "category": "Cardiology",
+   "cpts": [
+    "93306"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "LVEF 55-70%",
+   "indications": [
+    "I50",
+    "R01",
+    "I35",
+    "I34",
+    "R06.0",
+    "I42",
+    "I11.0"
+   ],
+   "keywords": [
+    "echocardiogram",
+    "echo",
+    "ejection fraction"
+   ],
+   "conditions": [
+    "heart failure",
+    "heart murmur",
+    "cardiomyopathy"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": true
+  },
+  {
+   "key": "ct_chest",
+   "name": "CT chest without contrast",
+   "category": "Imaging",
+   "cpts": [
+    "71250"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "No acute findings",
+   "indications": [
+    "R91",
+    "J84",
+    "R05",
+    "R04.2",
+    "J18"
+   ],
+   "keywords": [
+    "ct chest",
+    "chest ct",
+    "ct of the chest",
+    "ct scan of the chest"
+   ],
+   "conditions": [
+    "lung nodule",
+    "pulmonary nodule"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": true
+  },
+  {
+   "key": "ldct",
+   "name": "Low-dose CT lung cancer screening",
+   "category": "Screening",
+   "cpts": [
+    "71271"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Lung-RADS 1",
+   "indications": [
+    "Z87.891",
+    "F17.21",
+    "Z12.2",
+    "Z72.0"
+   ],
+   "keywords": [
+    "low-dose ct",
+    "low dose ct",
+    "lung cancer screening",
+    "ldct"
+   ],
+   "conditions": [
+    "heavy smoker",
+    "pack-year"
+   ],
+   "interval_days": 365,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "ct_head",
+   "name": "CT head without contrast",
+   "category": "Imaging",
+   "cpts": [
+    "70450"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "No acute intracranial process",
+   "indications": [
+    "R51",
+    "S06",
+    "G45",
+    "R42",
+    "R55",
+    "I63"
+   ],
+   "keywords": [
+    "ct head",
+    "head ct",
+    "ct of the head",
+    "ct scan of the head"
+   ],
+   "conditions": [
+    "head injury",
+    "stroke"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": true
+  },
+  {
+   "key": "mri_brain",
+   "name": "MRI brain without contrast",
+   "category": "Imaging",
+   "cpts": [
+    "70551"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "No acute intracranial abnormality",
+   "indications": [
+    "G43",
+    "R51",
+    "G45",
+    "R42",
+    "G35",
+    "G40"
+   ],
+   "keywords": [
+    "mri brain",
+    "brain mri",
+    "mri of the brain",
+    "neuroimaging"
+   ],
+   "conditions": [
+    "migraine with aura",
+    "seizure",
+    "multiple sclerosis"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": true
+  },
+  {
+   "key": "xr_knee",
+   "name": "Knee X-ray, 3 views",
+   "category": "Imaging",
+   "cpts": [
+    "73562"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Mild degenerative change",
+   "indications": [
+    "M17",
+    "M25.56",
+    "S83",
+    "S80"
+   ],
+   "keywords": [
+    "knee x-ray",
+    "knee x ray",
+    "x-ray of the knee",
+    "knee radiograph"
+   ],
+   "conditions": [
+    "knee osteoarthritis",
+    "knee pain",
+    "knee injury"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "mri_knee",
+   "name": "MRI knee without contrast",
+   "category": "Imaging",
+   "cpts": [
+    "73721"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "No meniscal tear",
+   "indications": [
+    "M23",
+    "S83",
+    "M25.56",
+    "M17"
+   ],
+   "keywords": [
+    "mri knee",
+    "knee mri",
+    "mri of the knee"
+   ],
+   "conditions": [
+    "meniscal tear",
+    "ligament tear"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": true
+  },
+  {
+   "key": "us_abd",
+   "name": "Ultrasound abdomen, complete",
+   "category": "Imaging",
+   "cpts": [
+    "76700"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Unremarkable",
+   "indications": [
+    "R10",
+    "K80",
+    "R74",
+    "K76"
+   ],
+   "keywords": [
+    "abdominal ultrasound",
+    "ultrasound of the abdomen",
+    "abdomen ultrasound"
+   ],
+   "conditions": [
+    "gallstones",
+    "right upper quadrant pain",
+    "fatty liver"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "mammo",
+   "name": "Screening mammogram",
+   "category": "Screening",
+   "cpts": [
+    "77067"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "BI-RADS 1",
+   "indications": [
+    "Z12.31",
+    "Z80.3"
+   ],
+   "keywords": [
+    "mammogram",
+    "mammography",
+    "breast cancer screening"
+   ],
+   "conditions": [],
+   "interval_days": 365,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "stress",
+   "name": "Exercise stress test",
+   "category": "Cardiology",
+   "cpts": [
+    "93015"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "No inducible ischemia",
+   "indications": [
+    "R07",
+    "I20",
+    "I25"
+   ],
+   "keywords": [
+    "stress test",
+    "treadmill test",
+    "exercise test"
+   ],
+   "conditions": [
+    "angina",
+    "exertional chest pain"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "mpi",
+   "name": "Nuclear myocardial perfusion study",
+   "category": "Cardiology",
+   "cpts": [
+    "78452"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "Normal perfusion",
+   "indications": [
+    "R07",
+    "I20",
+    "I25"
+   ],
+   "keywords": [
+    "nuclear stress",
+    "myocardial perfusion",
+    "spect",
+    "pharmacologic stress"
+   ],
+   "conditions": [],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": true
+  },
+  {
+   "key": "psg",
+   "name": "Sleep study (polysomnography)",
+   "category": "Pulmonary",
+   "cpts": [
+    "95810"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "AHI < 5",
+   "indications": [
+    "G47.3",
+    "R06.83",
+    "G47.1"
+   ],
+   "keywords": [
+    "sleep study",
+    "polysomnography",
+    "psg"
+   ],
+   "conditions": [
+    "sleep apnea",
+    "snoring",
+    "osa"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": false,
+   "prior_auth": true
+  },
+  {
+   "key": "retinal",
+   "name": "Diabetic retinal imaging",
+   "category": "Screening",
+   "cpts": [
+    "92250"
+   ],
+   "loinc": "",
+   "specimen": "",
+   "unit": "",
+   "low": null,
+   "high": null,
+   "reference": "No retinopathy",
+   "indications": [
+    "E11",
+    "E10",
+    "E13"
+   ],
+   "keywords": [
+    "retinal exam",
+    "eye exam",
+    "retinal imaging",
+    "fundus photo",
+    "dilated eye"
+   ],
+   "conditions": [
+    "diabetic retinopathy"
+   ],
+   "interval_days": 365,
+   "chronic_monitoring": true,
+   "point_of_care": false,
+   "prior_auth": false
+  },
+  {
+   "key": "phq9",
+   "name": "Depression screening (PHQ-9)",
+   "category": "Screening",
+   "cpts": [
+    "96127"
+   ],
+   "loinc": "44249-1",
+   "specimen": "",
+   "unit": "score",
+   "low": null,
+   "high": 4.0,
+   "reference": "0-4 minimal",
+   "indications": [
+    "F32",
+    "F33",
+    "F41",
+    "Z13.31",
+    "Z13.39"
+   ],
+   "keywords": [
+    "phq-9",
+    "phq9",
+    "depression screening",
+    "gad-7"
+   ],
+   "conditions": [
+    "depression",
+    "anxiety",
+    "low mood"
+   ],
+   "interval_days": 0,
+   "chronic_monitoring": false,
+   "point_of_care": true,
+   "prior_auth": false
+  }
+ ]
+}

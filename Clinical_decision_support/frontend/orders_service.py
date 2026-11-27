@@ -15,6 +15,7 @@ from frontend import prior_auth as pa
 from frontend.api_client import HealthcareApiClient
 from frontend.clinical_text import append_to_plan
 from frontend.ehr_chart import primary_coverage
+from frontend.payer_gateway import get_gateway
 
 
 def service_date(record: dict[str, Any]) -> date:
@@ -51,7 +52,7 @@ def sync_order(record: dict[str, Any], order: dict[str, Any], client: Healthcare
 def _authorize(record: dict[str, Any], order: dict[str, Any], coverage: dict[str, Any], user: str,
                client: HealthcareApiClient) -> None:
     """Background prior authorization: build, save (gets PA ID), submit, save the determination."""
-    need = pa.requirement(dx.BY_KEY[order["test_key"]].primary_cpt, coverage)
+    need = pa.requirement(dx.by_key()[order["test_key"]].primary_cpt, coverage)
     if not need["required"]:
         order["prior_auth"] = {"required": False, "status": pa.NOT_REQUIRED, "reason": need["reason"]}
         return
@@ -59,7 +60,7 @@ def _authorize(record: dict[str, Any], order: dict[str, Any], coverage: dict[str
     request = pa.build_request(order, record, coverage, user)
     saved = client.upsert_patient_records(patient_id, "Prior_Authorizations", [request], "PA_ID")
     request = saved[0] if saved else request
-    decided = pa.submit(request)
+    decided = get_gateway().prior_authorization(request)
     saved = client.upsert_patient_records(patient_id, "Prior_Authorizations", [decided], "PA_ID")
     order["prior_auth"] = pa.order_summary(saved[0] if saved else decided)
 
@@ -82,7 +83,7 @@ def place_orders(record: dict[str, Any], chart: dict[str, Any] | None, picks: li
         if key in existing or key not in dx.BY_KEY:
             continue
         suggestion = pick.get("suggestion") or {}
-        linked = suggestion.get("linked_dx") or dx.linked_diagnoses(dx.BY_KEY[key], diagnoses)
+        linked = suggestion.get("linked_dx") or dx.linked_diagnoses(dx.by_key()[key], diagnoses)
         order = dx.new_order(
             key, record, reasons=suggestion.get("reasons") or ["Added by clinician"], linked_dx=linked,
             ordered_by=user, priority=priority, source="CDS" if suggestion else "Clinician",

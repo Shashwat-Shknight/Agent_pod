@@ -1,0 +1,88 @@
+{
+  "pack": "rcm_policy",
+  "version": "2026.1",
+  "effective": "2026-01-01",
+  "owner": "Revenue Integrity",
+  "sources": [
+    "CMS 2026 Medicare Parts A & B Premiums and Deductibles fact sheet: Part B deductible $283 (https://www.cms.gov/newsroom/fact-sheets/2026-medicare-parts-b-premiums-deductibles)",
+    "HHS 2026 maximum annual limitation on cost sharing, revised June 2025: $10,600 self-only / $21,200 family",
+    "CY 2026 Medicare Advantage in-network MOOP $9,250 (KFF, Medicare Advantage Out-of-Pocket Limits, 2026)",
+    "42 CFR 447.52(b): Medicaid nominal cost sharing, $4 outpatient (2013 base, indexed)",
+    "ACA section 2713: in-network preventive services without cost sharing",
+    "IRS 501(r)(6): 120-day notification period before extraordinary collection actions",
+    "X12 Claim Adjustment Reason Codes (CARC)"
+  ],
+  "plan_years": {
+    "2026": {
+      "medicare_part_b_deductible": 283.0,
+      "medicare_part_b_coinsurance": 0.20,
+      "aca_oop_max_self": 10600.0,
+      "aca_oop_max_family": 21200.0,
+      "ma_moop_in_network": 9250.0,
+      "medicaid_nominal_outpatient_copay": 4.0
+    },
+    "2025": {
+      "medicare_part_b_deductible": 257.0,
+      "medicare_part_b_coinsurance": 0.20,
+      "aca_oop_max_self": 9200.0,
+      "aca_oop_max_family": 18400.0,
+      "ma_moop_in_network": 9350.0,
+      "medicaid_nominal_outpatient_copay": 4.0
+    }
+  },
+  "payer_classes": {
+    "Commercial": {"allowed_rate": 0.58, "coinsurance": 0.20, "oop_max": 6000.0},
+    "Medicare Advantage": {"allowed_rate": 0.42, "coinsurance": 0.20, "oop_max": 5421.0},
+    "Medicare": {"allowed_rate": 0.38, "coinsurance": 0.20, "oop_max": null},
+    "Medicaid": {"allowed_rate": 0.30, "coinsurance": 0.0, "oop_max": null},
+    "Self-pay": {"allowed_rate": 1.0, "coinsurance": 1.0, "oop_max": null}
+  },
+  "commercial_plan_designs": {
+    "HMO": {"coinsurance": 0.10, "oop_max": 4500.0},
+    "EPO": {"coinsurance": 0.15, "oop_max": 5000.0},
+    "POS": {"coinsurance": 0.20, "oop_max": 5500.0},
+    "PPO": {"coinsurance": 0.20, "oop_max": 6000.0},
+    "HDHP": {"coinsurance": 0.20, "oop_max": 7000.0}
+  },
+  "payer_contracts_fallback": [
+    {"match": "athena", "allowed_rate": 0.615, "label": "Athena PPO fee schedule (synthetic)"},
+    {"match": "care gap", "allowed_rate": 0.553, "label": "Care Gap Value PPO, 90% of Athena (synthetic)"},
+    {"match": "unitedhealthcare", "allowed_rate": 0.58, "label": "UnitedHealthcare commercial fee schedule (synthetic)"},
+    {"match": "blue cross", "allowed_rate": 0.62, "label": "Blue Cross commercial fee schedule (synthetic)"},
+    {"match": "aetna", "allowed_rate": 0.60, "label": "Aetna commercial fee schedule (synthetic)"},
+    {"match": "cigna", "allowed_rate": 0.59, "label": "Cigna commercial fee schedule (synthetic)"},
+    {"match": "humana", "allowed_rate": 0.47, "label": "Humana Medicare Advantage (synthetic)"}
+  ],
+  "statement_policy": {
+    "first_statement_delay_days": 2,
+    "terms_days": 30,
+    "extraordinary_collection_wait_days": 120
+  },
+  "aging_buckets": [
+    {"label": "1-30", "max_days": 30},
+    {"label": "31-60", "max_days": 60},
+    {"label": "61-90", "max_days": 90},
+    {"label": "90+", "max_days": null}
+  ],
+  "follow_up_priority": {
+    "high_days_past_due": 60,
+    "high_balance": 1000.0,
+    "medium_balance": 250.0
+  },
+  "preventive_codes": [
+    "77067", "71271", "86803", "96127", "G0438", "G0439", "G0442", "G0443", "G0444",
+    "99381", "99382", "99383", "99384", "99385", "99386", "99387",
+    "99391", "99392", "99393", "99394", "99395", "99396", "99397"
+  ],
+  "preventive_dx_prefixes": ["Z00", "Z01.4", "Z11", "Z12", "Z13", "Z71.3", "Z80"],
+  "carc_text": {
+    "CO-45": "Charge exceeds fee schedule / contracted amount",
+    "PR-1": "Deductible amount",
+    "PR-2": "Coinsurance amount",
+    "PR-3": "Copayment amount",
+    "CO-197": "Precertification/authorization absent",
+    "CO-50": "Not deemed a medical necessity by the payer",
+    "CO-27": "Expenses incurred after coverage terminated",
+    "CO-16": "Claim lacks information needed for adjudication"
+  }
+}

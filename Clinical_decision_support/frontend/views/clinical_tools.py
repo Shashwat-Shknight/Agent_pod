@@ -123,9 +123,6 @@ def show_medications():
             )
 
 
-PRIOR_AUTH_DEMO_RULES = pa.PRIOR_AUTH_RULES
-
-
 def prior_auth_rule(code):
     return pa.prior_auth_rule(code)
 

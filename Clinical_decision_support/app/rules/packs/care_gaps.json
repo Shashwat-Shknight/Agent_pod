@@ -1,0 +1,23 @@
+{
+  "pack": "care_gaps",
+  "version": "2026.1",
+  "effective": "2026-01-01",
+  "owner": "Quality / VBC",
+  "sources": [
+    "NCQA HEDIS MY2026: Glycemic Status Assessment for Patients With Diabetes (GSD, poor control > 9.0% / control < 8.0%), Eye Exam for Patients With Diabetes (EED), Kidney Health Evaluation for Patients With Diabetes (KED), Controlling High Blood Pressure (CBP, < 140/90)"
+  ],
+  "lookback_days": 365,
+  "diabetes": {
+    "problem_terms": ["diabet"],
+    "icd_pattern": "\\be1[013]\\.",
+    "a1c_goal_below": 8.0,
+    "eye_exam_terms": ["eye", "retin", "ophthalm", "fundus"],
+    "kidney_tests": ["egfr", "albumin"]
+  },
+  "hypertension": {
+    "problem_terms": ["hypertension"],
+    "icd_pattern": "\\bi1[0-6]",
+    "systolic_below": 140,
+    "diastolic_below": 90
+  }
+}

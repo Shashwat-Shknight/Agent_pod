@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from frontend import diagnostics as dx
+from frontend import hcc
 from frontend import ocr_service as ocr
 from frontend.clinical_text import best_excerpt
 from frontend.coding_validation import post_coding_checks, pre_coding_checks
@@ -65,20 +66,6 @@ def persist_consultation_cpt_results(record, cpt_results):
     }
     save_db(st.session_state.records)
 
-
-# Small, explicitly labelled demo subset of CMS-HCC V28 mappings.
-HCC_V28_DEMO = {
-    "E10.9": "HCC 38",
-    "E11.9": "HCC 38",
-    "E11.42": "HCC 37",
-    "E11.65": "HCC 38",
-    "E66.01": "HCC 48",
-    "I48.91": "HCC 238",
-    "I50.9": "HCC 226",
-    "J44.9": "HCC 280",
-    "N18.4": "HCC 327",
-    "N18.5": "HCC 326",
-}
 
 EM_MDM_LEVELS = {
     "99202": "Straightforward",
@@ -160,7 +147,7 @@ def build_code_rows(record, code_results):
                 "code": code,
                 "term": term,
                 "description": item.get("Matched Disease/Injury", ""),
-                "hcc": HCC_V28_DEMO.get(code.upper(), ""),
+                "hcc": hcc.hcc_for(code),
                 "match": match_score(term, item.get("Matched Disease/Injury", "")),
                 "status": decisions.get(key, {}).get("status") or auto_status,
                 "excerpt": best_excerpt(term, documentation),
@@ -533,7 +520,7 @@ def show_codes():
             '<div class="nc-badge-row" style="justify-content:flex-end;padding-bottom:.35rem">'
             + badge("Note SIGNED" if is_signed else "Note DRAFT", "green" if is_signed else "amber")
             + badge("ICD-10-CM · CPT/HCPCS", "blue")
-            + badge("CMS-HCC V28 (demo map)", "violet")
+            + badge("CMS-HCC V28 · official map" if hcc.OFFICIAL_MAPPING.is_file() else "CMS-HCC V28 · seed map", "violet")
             + "</div>",
             unsafe_allow_html=True,
         )
@@ -616,16 +603,17 @@ def show_codes():
                 st.caption("Select a code to see its supporting documentation.")
 
     statuses = [row["status"] for row in rows]
-    hccs = sorted({row["hcc"] for row in rows if row["hcc"] and row["status"] not in {"Rejected"}})
+    # V28 hierarchies: a more severe HCC in the same family (e.g. HCC 37 over 38) drops the lesser one.
+    hccs = hcc.apply_hierarchy(row["hcc"] for row in rows if row["hcc"] and row["status"] not in {"Rejected"})
     em_code = next((row["code"] for row in rows if row["code"] in EM_MDM_LEVELS and row["status"] != "Rejected"), None)
     with st.container(border=True):
-        card_title("Coding Summary", "Encounter-level coding and risk capture")
+        card_title("Coding Summary", f"Encounter-level coding and risk capture · {hcc.source()}")
         render_tiles(
             [
                 ("Accepted", statuses.count("Accepted")),
                 ("Pending query", statuses.count("Query sent")),
                 ("Rejected", statuses.count("Rejected")),
-                ("HCCs captured", f"{len(hccs)} · {', '.join(hccs)}" if hccs else "0"),
+                ("HCCs captured", f"{len(hccs)} · " + ", ".join(f"{item} {hcc.label(item)}".strip() for item in hccs) if hccs else "0"),
                 ("E/M level", em_code or "—"),
                 ("MDM", EM_MDM_LEVELS.get(em_code, "—") if em_code else "—"),
             ]
