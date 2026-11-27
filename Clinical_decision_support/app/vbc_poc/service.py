@@ -88,7 +88,10 @@ def events_for(state: dict, patient_id: str, as_of: date | None = None) -> list[
     out = []
     for event in [event for event in EVENTS if event.patient_id == patient_id] + added:
         decision = decisions.get(event.event_id)
-        if decision and (as_of is None or decision["at"][:10] <= as_of.isoformat()):
+        # Known no later than the evaluation clock: a decision recorded after the measurement period
+        # (or on a pinned demo date) still counts for the period's latest point, as it does for the rate.
+        known_on = min(decision["at"][:10], today().isoformat()) if decision else ""
+        if decision and (as_of is None or known_on <= as_of.isoformat()):
             event = replace(event, verification="verified" if decision["decision"] == "accepted" else "rejected")
         out.append(event)
     return out

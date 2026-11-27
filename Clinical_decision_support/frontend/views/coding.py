@@ -7,6 +7,7 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
+from frontend import diagnostics as dx
 from frontend import ocr_service as ocr
 from frontend.clinical_text import best_excerpt
 from frontend.coding_validation import post_coding_checks, pre_coding_checks
@@ -32,6 +33,7 @@ from frontend.ui.components import (
     render_checklist,
     render_code_results,
     render_grouped_insights,
+    render_html_table,
     render_tiles,
 )
 from frontend.ui.data import record_chart
@@ -474,6 +476,22 @@ def render_validation_card(title, subtitle, checks, key):
     return summary
 
 
+def _render_order_codes(record):
+    """Diagnostic orders carry their own CPT/LOINC; coders see them here, billing bills them once performed."""
+    lines = dx.billing_lines(record)
+    if not lines:
+        return
+    with st.container(border=True):
+        card_title("Ordered diagnostics", "Codes come from the order itself; billable once the test is performed or resulted")
+        tones = {"BILLABLE": "green", "PENDING": "amber", "HELD": "red"}
+        render_html_table(
+            ["CPT", "Service", "Order", "Linked diagnoses", "Billing"],
+            [[f"<code>{escape(line['code'])}</code>", escape(line["service"]), escape(line["order_id"] or "—"),
+              escape(", ".join(line["linked_dx"]) or "—"), badge(line["state"].title(), tones.get(line["state"], "gray"))]
+             for line in lines],
+        )
+
+
 def show_codes():
     render_page("codes")
     records = st.session_state.records
@@ -619,6 +637,7 @@ def show_codes():
             " · Every status transition is retained in the encounter audit log.</div>",
             unsafe_allow_html=True,
         )
+    _render_order_codes(record)
     post_summary = render_validation_card(
         "Post-coding validation", "Code-set integrity and claim scrub — is this ready to bill?", post_checks, "post"
     )

@@ -9,7 +9,14 @@ import streamlit as st
 from frontend.api_client import HealthcareApiClient
 from frontend.settings import BILLING_NOTICE, EHR_DATA_FILE
 from frontend.ui.components import badge, card_title, page_title, render_banner, render_tiles
-from frontend.ui.data import BACKEND_ERRORS, backend_error_message, fetch_ehr_patients, fetch_patient_chart, refresh_ehr_cache
+from frontend.ui.data import (
+    BACKEND_ERRORS,
+    backend_error_message,
+    fetch_ehr_patients,
+    fetch_patient_chart,
+    patient_option_label,
+    refresh_ehr_cache,
+)
 from frontend.ui.shell import render_page
 from frontend.ui.state import can, log_action
 
@@ -51,11 +58,25 @@ def _after_write(message, action, detail):
     st.rerun()
 
 
+# The internal EHR key (Patient_ID) stays in the data but is never shown; tables show the MRN instead.
+HIDE_PATIENT_KEY = {"Patient_ID": None}
+
+
+def _mrn_view(frame, mrn_by_id):
+    if isinstance(frame, pd.DataFrame) and "Patient_ID" in frame.columns and "MRN" not in frame.columns:
+        frame = frame.copy()
+        frame.insert(0, "MRN", frame["Patient_ID"].astype(str).map(mrn_by_id).fillna(""))
+    return frame
+
+
+def _mrn_lookup():
+    return {str(item.get("patient_id") or item.get("Patient_ID")): str(item.get("MRN") or "") for item in fetch_ehr_patients() or []}
+
+
 def _render_chart_tab(patient_id, chart):
     patient = chart.get("patient") or {}
     render_tiles(
         (
-            ("Patient ID", patient_id),
             ("MRN", patient.get("MRN") or "—"),
             ("Date of birth", str(patient.get("DOB") or "—").split("T")[0]),
             ("Sex", patient.get("Sex_at_Birth") or "—"),
@@ -78,7 +99,9 @@ def _render_chart_tab(patient_id, chart):
         )
         or sections[0]
     )
-    st.dataframe(pd.DataFrame(chart["records"].get(section, [])), width="stretch", hide_index=True)
+    mrn = str((chart.get("patient") or {}).get("MRN") or "")
+    st.dataframe(_mrn_view(pd.DataFrame(chart["records"].get(section, [])), {patient_id: mrn}),
+                 width="stretch", hide_index=True, column_config=HIDE_PATIENT_KEY)
 
 
 def _render_edit_tab(client, patient_id, chart):
@@ -127,6 +150,7 @@ def _render_records_tab(client, patient_id, chart):
         num_rows="dynamic",
         width="stretch",
         hide_index=True,
+        column_config=HIDE_PATIENT_KEY,
         key=f"ehr_records_{patient_id}_{sheet_name}",
     )
     if st.button("Save record changes", key=f"ehr_save_records_{patient_id}_{sheet_name}", type="primary"):
@@ -195,7 +219,7 @@ def _render_create_form(client):
                 st.error(f"Patient creation failed: {backend_error_message(error)}")
             else:
                 _after_write(
-                    f"Created {created.get('Legal_Name')} · {created.get('Patient_ID')}.",
+                    f"Created {created.get('Legal_Name')} · {created.get('MRN') or 'MRN pending'}.",
                     "ehr.patient_create",
                     str(created.get("Patient_ID")),
                 )
@@ -221,7 +245,7 @@ def _render_offline_workbook():
         frame = workbook.get(sheet, pd.DataFrame())
         card_title(sheet.replace("_", " "), f"{len(frame)} row(s) · {EHR_DATA_FILE.name}")
         if isinstance(frame, pd.DataFrame) and not frame.empty:
-            st.dataframe(frame, width="stretch", hide_index=True)
+            st.dataframe(_mrn_view(frame, _mrn_lookup()), width="stretch", hide_index=True, column_config=HIDE_PATIENT_KEY)
         else:
             st.info("This sheet has no tabular rows to display.")
 
@@ -242,7 +266,7 @@ def show_ehr_demo_data():
     options = {
         str(
             item.get("patient_id") or item.get("Patient_ID")
-        ): f"{item.get('display_name') or item.get('Legal_Name')} · {item.get('patient_id') or item.get('Patient_ID')}"
+        ): patient_option_label(item)
         for item in patients
     }
     select_col, status_col = st.columns([3, 2], vertical_alignment="bottom")

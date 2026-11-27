@@ -114,8 +114,40 @@ def get_detected_insights(transcript_text):
         "lipid panel": "Lipid Panel",
         "basic metabolic panel": "Basic Metabolic Panel",
     }
-    insights = list(dict.fromkeys(value for keyword, value in keyword_map.items() if keyword in text))
+    insights = list(
+        dict.fromkeys(value for keyword, value in keyword_map.items() if keyword in text and _has_affirmed_mention(text, keyword))
+    )
     return _specific_diabetes(insights, text)
+
+
+# A mention is negated when a cue sits in the few words before it, in the same clause
+# ("denies chest pain", "no fever or cough"). "History of" is NOT a negation: chronic conditions are active.
+_NEGATION_CUE = re.compile(
+    r"\b(?:no|not|denies|denied|deny|without|negative for|free of|never had|rules? out|ruled out|family history of|"
+    r"at risk (?:of|for)|risk of|screening for|to prevent|(?:mother|father|sister|brother|sibling|grandmother|grandfather)s?\W+(?:has|had))\b"
+    r"(?:\W+\w+){0,4}\W*$"
+)
+_CLAUSE_BREAK = re.compile(r"[.;:!?\n]|\bbut\b|\bhowever\b")
+# A new subject after the cue ends it: "mother has asthma and I have asthma" - the second mention is the patient's.
+_SUBJECT_SWITCH = re.compile(r"\b(?:i|i'm|i've|he|she|patient|pt)\b")
+_SENTENCE_END = re.compile(r"[.!?\n]")
+
+
+def _has_affirmed_mention(text, keyword):
+    """True when at least one mention of `keyword` is not negated within its clause."""
+    for match in re.finditer(re.escape(keyword), text):
+        sentence_end = _SENTENCE_END.search(text, match.end())
+        if sentence_end and sentence_end.group() == "?" and sentence_end.start() - match.end() <= 60:
+            continue  # a question ("Any chest pain?") is not a finding; the answer decides
+        before = text[max(0, match.start() - 80) : match.start()]
+        clause = _CLAUSE_BREAK.split(before)[-1]
+        cue = _NEGATION_CUE.search(clause)
+        if not cue:
+            return True
+        words_after_cue = clause[cue.start() :].split(None, 1)[1:]  # drop the cue's first word ("mother", "no", ...)
+        if words_after_cue and _SUBJECT_SWITCH.search(words_after_cue[0]):
+            return True
+    return False
 
 
 DIABETES_WITH_NEUROPATHY = "Type 2 diabetes mellitus with diabetic polyneuropathy"

@@ -15,6 +15,7 @@ from frontend.ui.data import (
     backend_error_message,
     fetch_ehr_patients,
     fetch_patient_chart,
+    patient_option_label,
     record_patient_id,
     refresh_ehr_cache,
 )
@@ -28,9 +29,7 @@ def _select_ehr_patient(key):
     if patients is None:
         render_banner("EHR backend unavailable", "Start the FastAPI backend with: python -m app", tone="warn", icon="&#9888;")
         return None, {}
-    options = {
-        f"{p.get('display_name') or p.get('Legal_Name')} · {p.get('patient_id')}": str(p.get("patient_id")) for p in patients
-    }
+    options = {patient_option_label(p): str(p.get("patient_id")) for p in patients}
     labels = list(options)
     current_id = record_patient_id(st.session_state.current_record)
     default = next((index for index, value in enumerate(options.values()) if value == current_id), 0)

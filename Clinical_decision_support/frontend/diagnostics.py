@@ -246,6 +246,8 @@ CATALOG: tuple[DiagnosticTest, ...] = (
     ),
 )
 BY_KEY = {test.key: test for test in CATALOG}
+NON_SPECIFIC_FINDINGS = {"fatigue", "fever", "infection", "edema", "bleeding", "unexplained weight", "numbness", "tingling",
+                         "prostate", "thyroid", "low mood"}
 _NEGATION = re.compile(r"\b(no|not|denies|denied|without|negative for|ruled out|rules out|never)\b[^.;\n]{0,40}$")
 
 
@@ -386,7 +388,8 @@ def suggest_tests(record: dict[str, Any], chart: dict[str, Any] | None, today: d
             strength = max(strength, 2)
         elif phrase := _mention(_CONDITION_PATTERNS[test.key], plan_text):
             reasons.append(f"Assessment: {phrase}")
-            strength = max(strength, 2)
+            # A non-specific symptom (fatigue, fever...) is shown as an option but not pre-selected.
+            strength = max(strength, 1 if phrase in NON_SPECIFIC_FINDINGS else 2)
         linked = linked_diagnoses(test, diagnoses)
         encounter_dx = [row for row in diagnoses if row["code"] in linked and row["source"] == "Encounter"]
         problem_dx = [row for row in diagnoses if row["code"] in linked and row["source"] == "Problem list"]

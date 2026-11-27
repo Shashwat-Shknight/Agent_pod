@@ -82,7 +82,9 @@ def pre_coding_checks(record: dict[str, Any], chart: dict[str, Any] | None, insi
         checks.append(_check("Codable content", FAIL, "No diagnoses, symptoms or services detected in the documentation"))
 
     if record.get("ehr_patient_id") or record.get("patient_id"):
-        checks.append(_check("Patient linked to EHR", PASS, str(record.get("ehr_patient_id") or record.get("patient_id"))))
+        mrn = record.get("mrn") or ((chart or {}).get("patient") or {}).get("MRN") or "MRN pending"
+        encounter = record.get("ehr_encounter_id") or "no EHR encounter yet"
+        checks.append(_check("Patient linked to EHR", PASS, f"{mrn} · encounter {encounter}"))
     else:
         checks.append(_check("Patient linked to EHR", WARN, "Local consultation only — demographics and coverage cannot be verified"))
 

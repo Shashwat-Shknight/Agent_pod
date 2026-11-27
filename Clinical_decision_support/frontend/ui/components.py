@@ -10,7 +10,7 @@ import streamlit as st
 
 from frontend.clinical_text import clean_clinical_text, get_insight_category, parse_transcript_entries
 from frontend.ehr_chart import chart_context, format_date
-from frontend.ui.data import record_patient_id
+from frontend.ui.data import patient_identifier, record_mrn, record_patient_id
 from frontend.ui.state import open_record, user_label
 
 CONSULT_STEPS = ("Patient", "Record", "Clinical Review & CDS", "SOAP Note & Sign")
@@ -270,7 +270,7 @@ def render_patient_table(records):
         )
         encounter_id = record.get("ehr_encounter_id") or record.get("id", "")
         columns[1].markdown(
-            f'<div class="table-two-line"><span class="table-meta">{escape(record.get("mrn") or "MRN pending")}</span>'
+            f'<div class="table-two-line"><span class="table-meta">{escape(patient_identifier(record))}</span>'
             f"<small>{escape(encounter_id)}</small></div>",
             unsafe_allow_html=True,
         )
@@ -334,7 +334,7 @@ def record_subtitle(record):
     encounter_id = record.get("ehr_encounter_id") or ""
     parts = [
         record.get("name", ""),
-        record.get("mrn") or "",
+        record_mrn(record),
         encounter_id,
         record.get("id", "") if record.get("id") != encounter_id else "",
         record.get("doctor", ""),

@@ -9,6 +9,25 @@ This branch fixes four gaps in the consultation-to-cash flow.
 | Prior authorization was a static list | Runs **in the background** when a gated study is ordered; the clinician sees only a small badge, and billing holds the line until it is approved |
 | Billing stopped at gross charges; claims had no payer, member ID or diagnosis pointers | **RCM engine**: eligibility and benefits, expected adjudication, patient account, 837 → 277CA → 835, statement, aging, next best action, KPIs |
 
+## Also fixed
+
+- **MRN on every screen.** These now show the MRN, never the internal EHR key (P100067):
+  - consultation list
+  - billing patient list and banner
+  - claim screens
+  - prior auth and medication pickers
+  - EHR Records
+  - Oversight
+  - the coding "Patient linked to EHR" check
+
+  Older consultations that never stored an MRN get it from the EHR.
+- **Negated and asked-about symptoms are not coded.** Neither "denies chest pain" nor the doctor's question "Any chest pain?" becomes R07.9. Family history and "at risk of" are not coded either. The detector was ported from the React copy and extended for questions.
+- **Common problems get a code** when the fuzzy matcher misses them: depression, anxiety, osteoarthritis, obesity, fatigue.
+- **Claims open ready to generate.** The rendering provider defaults to the attending clinician, and payer and member ID come from coverage. Before, empty provider fields silently blocked "Generate claims".
+- **No over-ordering.** Non-specific findings such as fatigue suggest a test without pre-ticking it.
+- **The 837 file** uses the payer member ID as the subscriber ID, gives each line its own diagnosis pointers, and carries the authorization number (REF*G1).
+- **Value-based-care trend** counts verified evidence for the latest point, the same way the compliance rate does.
+
 ## Walkthrough (demo)
 
 1. **Consultations**: pick a patient (shown as *Name · MRN · DOB*). On save, the EHR assigns the encounter number (for example ENC700100001), and the consultation uses it as its ID.

@@ -48,9 +48,11 @@ def _append_diagnoses(segments, patient):
             for code in re.split(r"[;,\n]+", _text(patient.get(field)))
             if code.strip()
         )
-    for index, code in enumerate(dict.fromkeys(diagnoses)):
+    ordered = list(dict.fromkeys(diagnoses))
+    for index, code in enumerate(ordered):
         qualifier = "ABK" if index == 0 else "ABF"
         segments.append(f"HI*{qualifier}:{_element(code)}~")
+    return ordered
 
 
 def determine_encounter_type(bill, source=""):
@@ -91,7 +93,7 @@ def generate_837(bill, claim_type=None, source=""):
     lines = bill["lines"]
     claim_id = _element(bill["encounter_id"])
     payer_name = _element(patient.get("Payer"))
-    patient_id = _element(patient.get("Patient ID"))
+    patient_id = _element(patient.get("Member ID") or patient.get("MRN") or patient.get("Patient ID"))
     patient_last, patient_first = _name_parts(patient.get("Patient Name"))
     total = _amount(bill["gross"])
     facility_code = "21" if claim_type == "837P" else "11"
@@ -124,7 +126,9 @@ def generate_837(bill, claim_type=None, source=""):
         if _text(discharge_date):
             segments.append(f"DTP*435*D8*{_date(discharge_date)}~")
 
-    _append_diagnoses(segments, patient)
+    if _text(patient.get("Prior Authorization Number")):
+        segments.append(f"REF*G1*{_element(patient.get('Prior Authorization Number').split(';')[0])}~")
+    diagnoses = _append_diagnoses(segments, patient)
     for index, line in enumerate(lines, start=1):
         segments.append(f"LX*{index}~")
         if claim_type == "837I":
@@ -138,9 +142,11 @@ def generate_837(bill, claim_type=None, source=""):
         else:
             codes = re.split(r"[;,\n]+", _text(line.get("CPT / HCPCS")))
             procedure = next((code.strip() for code in codes if code.strip()), "")
+            pointed = [code.strip().upper() for code in re.split(r"[;,\n]+", _text(line.get("ICD-10-CM Pointer"))) if code.strip()]
+            pointers = ":".join([str(diagnoses.index(code) + 1) for code in pointed if code in diagnoses][:4]) or "1"
             segments.append(
                 f"SV1*HC:{_element(procedure)}*{_amount(line['Line Charge ($)'])}"
-                f"*UN*{_amount(line['Quantity'])}***1~"
+                f"*UN*{_amount(line['Quantity'])}***{pointers}~"
             )
         segments.append(f"DTP*472*D8*{_date(line.get('Service Date'))}~")
 

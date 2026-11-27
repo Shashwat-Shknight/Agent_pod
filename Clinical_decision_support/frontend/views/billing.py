@@ -32,7 +32,14 @@ from frontend.ui.components import (
     render_html_table,
     render_tiles,
 )
-from frontend.ui.data import backend_error_message, record_chart, record_patient_id, refresh_ehr_cache
+from frontend.ui.data import (
+    backend_error_message,
+    patient_identifier,
+    record_chart,
+    record_mrn,
+    record_patient_id,
+    refresh_ehr_cache,
+)
 from frontend.ui.shell import render_page
 from frontend.ui.state import can, current_user, go_to, log_action, open_record, save_record
 from frontend.views.coding import (
@@ -229,7 +236,10 @@ def _render_patient_directory(records):
             coverage = primary_coverage(chart) if chart else {}
             unsynced = any(not r.get("ehr_encounter_id") for r in patient_records)
             types = {"IPD" if str(r.get("ehr_encounter_type", "")).lower().startswith("inp") else "OPD" for r in patient_records}
-            haystack = f"{latest.get('name', '')} {key} {latest.get('mrn', '')} {' '.join(r.get('id', '') for r in patient_records)}".lower()
+            haystack = " ".join([
+                str(latest.get("name", "")), key, record_mrn(latest, chart),
+                *(str(r.get("id", "")) for r in patient_records), *(str(r.get("ehr_encounter_id") or "") for r in patient_records),
+            ]).lower()
             if search and search not in haystack:
                 continue
             if (view in {"OPD", "IPD"} and view not in types) or (view == "Unsynced" and not unsynced):
@@ -238,9 +248,7 @@ def _render_patient_directory(records):
             is_selected = st.session_state.billing_patient_key == key
             with st.container(key=f"dir_{'on' if is_selected else 'off'}_{re.sub(r'[^A-Za-z0-9]', '_', key)}", border=True):
                 info_col, action_col = st.columns([4, 1.4], vertical_alignment="center")
-                meta = " · ".join(
-                    part for part in (record_patient_id(latest) or "Local only", coverage.get("Payer_Name", "")) if part
-                )
+                meta = " · ".join(part for part in (patient_identifier(latest, chart), coverage.get("Payer_Name", "")) if part)
                 info_col.markdown(
                     f'<div class="nc-patient"><div class="nc-initials">{escape(initials(latest.get("name")))}</div>'
                     f"<div><b>{escape(latest.get('name', ''))}</b><small>{escape(meta)}</small></div></div>"
@@ -283,7 +291,7 @@ def _render_patient_banner(record, chart):
     st.markdown(
         '<div class="nc-banner-card">'
         f'<div class="nc-patient"><div class="nc-initials lg">{escape(initials(record.get("name")))}</div>'
-        f'<div><b style="font-size:.95rem">{escape(record.get("name", ""))}</b><small>{escape(record_patient_id(record) or record.get("id", ""))} · {escape(str(age))}y · {escape(record.get("gender", ""))}</small></div></div>'
+        f'<div><b style="font-size:.95rem">{escape(record.get("name", ""))}</b><small>{escape(patient_identifier(record, chart))} · {escape(record.get("ehr_encounter_id") or record.get("id", ""))} · {escape(str(age))}y · {escape(record.get("gender", ""))}</small></div></div>'
         f'<div class="nc-badge-row">{"".join(badges)}</div></div>',
         unsafe_allow_html=True,
     )

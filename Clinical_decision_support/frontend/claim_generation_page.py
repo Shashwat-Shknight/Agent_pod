@@ -31,6 +31,7 @@ from frontend.supporting_documents import (
 )
 from frontend.ui.components import badge, card_title, page_title, render_banner, render_html_table, render_tiles
 from frontend.ui.shell import render_page
+from frontend.ui.data import mrn_for_patient
 from frontend.ui.state import can_open, current_user, go_to
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -427,6 +428,12 @@ def build_ambient_bill(record: dict[str, Any], estimate: dict[str, Any], code_re
         "lines": lines,
         "gross": _amount(estimate.get("total")) or Decimal("0.00"),
         "expected": estimate.get("expected"),
+        # The attending clinician renders the visit; the NPI is the illustrative demo NPI until a provider
+        # directory is connected, so the claim form opens complete instead of blocking on empty fields.
+        "rendering_provider": {
+            "Name": _text(record.get("doctor")) or "Demo Provider",
+            "NPI": SAMPLE_PROVIDER_NPIS["Demo Provider"],
+        },
     }
 
 
@@ -1071,7 +1078,8 @@ def show_claim_generation_page() -> None:
         patient = entry.get("bill", {}).get("patient", {})
         patient_id = _text(patient.get("Patient ID"))
         if patient_id:
-            patient_entries.setdefault(f"{_text(patient.get('Patient Name')) or 'Unnamed patient'} · {patient_id}", []).append((key, entry))
+            mrn = _text(patient.get("MRN")) or mrn_for_patient(patient_id) or "MRN pending"
+            patient_entries.setdefault(f"{_text(patient.get('Patient Name')) or 'Unnamed patient'} · {mrn}", []).append((key, entry))
     if not patient_entries:
         render_banner("No generated bill contains the patient identifiers needed for claim generation.", tone="warn", icon="&#9888;")
         return
@@ -1116,7 +1124,8 @@ def show_claim_generation_page() -> None:
         with st.container(border=True):
             card_title("Patient & encounter", encounter_id)
             _key_value_tiles({
-                "Patient ID": patient.get("Patient ID"), "Patient name": patient.get("Patient Name"),
+                "MRN": _text(patient.get("MRN")) or mrn_for_patient(_text(patient.get("Patient ID"))) or "MRN pending",
+                "Patient name": patient.get("Patient Name"), "Member ID": patient.get("Member ID"),
                 "Gender": patient.get("Gender"), "DOB": patient.get("DOB"), "Payer": patient.get("Payer"),
                 "Admission": patient.get("Admission Date"), "Discharge": patient.get("Discharge Date"),
             })

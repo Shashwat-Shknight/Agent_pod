@@ -175,7 +175,7 @@ def _render_queue(rows, offset=0):
             cols = st.columns(widths, vertical_alignment="center")
             cols[0].markdown(
                 f'<div class="nc-patient"><div class="nc-initials">{escape(initials(row["Patient"]))}</div>'
-                f"<div><b>{escape(row['Patient'])}</b><small>{escape(row['Patient ID'])} · {escape(row['Encounter'])}</small></div></div>",
+                f"<div><b>{escape(row['Patient'])}</b><small>Encounter {escape(row['Encounter'])}</small></div></div>",
                 unsafe_allow_html=True,
             )
             cols[1].markdown(f'<div class="nc-cell muted">{escape(row["MRN"])}</div>', unsafe_allow_html=True)
