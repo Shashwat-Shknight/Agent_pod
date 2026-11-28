@@ -111,7 +111,9 @@ def contract_terms(coverage: dict[str, Any] | None, encounter_type: str = "OPD")
     name = str((coverage or {}).get("Payer_Name") or "").strip().lower()
     klass = payer_class(coverage)
     if klass == "Self-pay":
-        return {"allowed_rate": 1.0, "by_cpt": {}, "label": "Self-pay (gross charges)"}
+        self_pay = policy().get("self_pay") or {}
+        return {"allowed_rate": round(1.0 - float(self_pay.get("uninsured_discount", 0.0)), 4), "by_cpt": {},
+                "label": self_pay.get("label") or "Self-pay (gross charges)"}
     if name:
         from frontend.chargemaster import payer_contract_rates
 

@@ -25,7 +25,30 @@ def has_first_and_last_name(name):
     return len(str(name or "").split()) >= 2
 
 
-def register_consultation_in_ehr(record, client=None, patient=None, dob=None, encounter_type="Office Visit"):
+def coverage_row(patient_id, coverage, year):
+    """Insurance row for a new patient's primary coverage (benefit defaults from the RCM policy pack)."""
+    from app.rules import packs
+
+    plan = coverage.get("plan_type") or "PPO"
+    defaults = (packs.load_pack("rcm_policy").get("registration_defaults") or {}).get(plan, {})
+    return {
+        "Coverage_ID": f"COV-{uuid.uuid4().hex[:8].upper()}",
+        "Patient_ID": patient_id,
+        "Priority": "Primary",
+        "Payer_Name": coverage["payer"],
+        "Member_ID": coverage.get("member_id") or f"MBR{uuid.uuid4().int % 10**8:08d}",
+        "Group_Number": coverage.get("group_number") or "",
+        "Relationship_to_Subscriber": "Self",
+        "Effective_Date": f"{year}-01-01",
+        "Termination_Date": f"{year}-12-31",
+        "Status": "Active",
+        "Plan_Type": plan,
+        "Annual_Deductible_USD": defaults.get("deductible", 0),
+        "Copay_USD": defaults.get("copay", 0),
+    }
+
+
+def register_consultation_in_ehr(record, client=None, patient=None, dob=None, encounter_type="Office Visit", coverage=None):
     client = client or HealthcareApiClient()
     patient = patient or {}
     patient_id = str(
@@ -53,6 +76,8 @@ def register_consultation_in_ehr(record, client=None, patient=None, dob=None, en
         patient_id = str(patient.get("Patient_ID") or patient.get("patient_id") or "")
         if not patient_id:
             raise ValueError("The EHR patient response did not include a patient ID.")
+        if coverage and coverage.get("payer") and coverage["payer"] != "Self-pay":
+            client.create_patient_record(patient_id, "Insurance", coverage_row(patient_id, coverage, datetime.now().year))
 
     record["ehr_patient_id"] = patient_id
     record["patient_id"] = patient_id
@@ -216,6 +241,17 @@ def _consult_step_patient():
             index=encounter_options.index(draft.get("encounter_type", "Outpatient")),
             key="consult_encounter_type",
         )
+        coverage = {}
+        if not selected_ehr_patient_id:
+            from frontend.claim_generation_page import payer_options
+
+            payer_col, plan_col, member_col = st.columns(3)
+            payer = payer_col.selectbox("Primary insurance", ["Self-pay", *payer_options()], key="consult_new_payer")
+            plan_type = plan_col.selectbox("Plan type", ["PPO", "HMO", "POS", "EPO", "HDHP", "Medicare", "Medicaid"],
+                                           key="consult_new_plan", disabled=payer == "Self-pay")
+            member_id = member_col.text_input("Member ID", key="consult_new_member", disabled=payer == "Self-pay",
+                                              placeholder="Assigned if left blank")
+            coverage = {"payer": payer, "plan_type": plan_type, "member_id": member_id.strip()}
         if patient_name.strip() and not name_is_valid:
             st.info("Enter both the patient's first and last name, or select an existing EHR patient.")
 
@@ -229,6 +265,7 @@ def _consult_step_patient():
             "dob": patient_dob.strip(),
             "doctor": doctor_name.strip(),
             "encounter_type": consultation_encounter_type,
+            "coverage": coverage,
         }
         st.session_state.consult_step = "record"
 
@@ -309,6 +346,7 @@ def _create_consultation_record():
             patient=draft.get("ehr_patient") or {},
             dob=draft.get("dob") or None,
             encounter_type=draft.get("encounter_type", "Outpatient"),
+            coverage=draft.get("coverage") or None,
         )
         if record.get("ehr_encounter_id"):
             record["id"] = record["ehr_encounter_id"]  # one identifier for the visit everywhere

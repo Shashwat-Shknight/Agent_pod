@@ -35,11 +35,12 @@ def _sync_note(record):
         pass  # the note is saved on the encounter; the EHR copy catches up on the next save
 
 
-def _place(record, chart, picks, priority):
+def _place(record, chart, picks, priority, perform_key):
     try:
         created, plan_text = orders_service.place_orders(
             record, chart, picks, user=current_user()["username"], priority=priority,
             plan_text=st.session_state.get("edit_summary") or record.get("summary") or "",
+            perform_in_clinic=bool(st.session_state.get(perform_key, True)),
         )
     except (RuntimeError, requests.exceptions.RequestException, ValueError) as error:
         _flash("error", f"Orders were not placed: {backend_error_message(error)}")
@@ -73,6 +74,20 @@ def _update(record, order_id, action, value_key=None):
     refresh_ehr_cache()
     log_action(f"orders.{action}", f"{record.get('id')}: {order_id} {order['name']} -> {order['status']}")
     _flash("success", f"{order['name']}: {order['status'].lower()}")
+
+
+def _perform_in_clinic(record):
+    try:
+        done = orders_service.perform_in_clinic(record)
+    except (RuntimeError, requests.exceptions.RequestException, ValueError) as error:
+        _flash("error", f"Could not update the orders: {backend_error_message(error)}")
+        return
+    if done:
+        save_record(record)
+        refresh_ehr_cache()
+        log_action("orders.perform", f"{record.get('id')}: " + ", ".join(order["order_id"] for order in done))
+    _flash("success" if done else "info",
+           f"{len(done)} in-clinic test(s) marked performed / collected — now billable" if done else "No open in-clinic tests")
 
 
 def _refresh_authorizations(record):
@@ -123,11 +138,18 @@ def _render_suggestions(record, chart, editable):
         key=f"dx_extra_{record_key}", disabled=not editable, placeholder="Search the order catalog",
     )
     picks += [{"test_key": key} for key in extra]
+    perform_key = f"dx_perform_now_{record_key}"
+    st.checkbox(
+        "Point-of-care tests are done and specimens collected during this visit", value=True, key=perform_key,
+        disabled=not editable,
+        help="ECG, point-of-care A1c, urine dip, rapid tests and in-house blood/urine draws become billable now. "
+             "Imaging and cardiac studies stay ordered until they are performed.",
+    )
     left, right = st.columns([3, 2], vertical_alignment="bottom")
     priority = left.radio("Priority", ["Routine", "STAT"], horizontal=True, key=f"dx_priority_{record_key}", disabled=not editable)
     right.button(
         f"Place {len(picks)} order{'s' if len(picks) != 1 else ''}", key=f"dx_place_{record_key}", type="primary",
-        width="stretch", disabled=not editable or not picks, on_click=_place, args=(record, chart, picks, priority),
+        width="stretch", disabled=not editable or not picks, on_click=_place, args=(record, chart, picks, priority, perform_key),
     )
 
 
@@ -156,6 +178,11 @@ def _render_orders(record, can_result):
         ])
     render_html_table(["Order", "Test", "Status", "Result", "Authorization"], rows)
     open_orders = [order for order in orders if order.get("status") in (dx.ORDERED, dx.PERFORMED) and order.get("order_id")]
+    in_clinic = [order for order in orders if order.get("status") == dx.ORDERED
+                 and dx.done_in_clinic(dx.by_key()[order["test_key"]])]
+    if in_clinic and can_result:
+        st.button(f"Mark {len(in_clinic)} in-clinic test(s) performed / specimens collected", key=f"dx_perform_all_{record.get('id')}",
+                  type="primary", on_click=_perform_in_clinic, args=(record,))
     if open_orders and can_result:
         with st.expander("Record specimen collection or results"):
             for order in open_orders:

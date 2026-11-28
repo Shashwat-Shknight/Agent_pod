@@ -676,11 +676,24 @@ def show_billing():
                     on_click=open_record,
                     args=(record, "codes"),
                 )
-        if held:
-            codes = ", ".join(row["code"] for row in held)
+        pending_orders = [row for row in held if row["guardrail"] == "PENDING"]
+        other_held = [row for row in held if row["guardrail"] != "PENDING"]
+        if pending_orders:
             render_banner(
-                f"{len(held)} line{'s' if len(held) > 1 else ''} held — {codes} excluded until performed evidence is documented",
-                "Held lines re-enter the bill once the note documents the service as performed.",
+                f"{len(pending_orders)} ordered test(s) not performed yet — " + ", ".join(row["code"] for row in pending_orders),
+                "A test is billed once it is performed or its specimen collected (billing an unperformed service is a "
+                "false claim). Record collection or results on the CDS workbench; the lines join this bill automatically.",
+                tone="warn",
+                icon="&#9432;",
+                trailing=badge("AWAITING PERFORMANCE", "amber"),
+            )
+            st.button("Record collection / results →", key="billing_open_orders", type="secondary",
+                      on_click=open_record, args=(record, "review"))
+        if other_held:
+            codes = ", ".join(row["code"] for row in other_held)
+            render_banner(
+                f"{len(other_held)} line{'s' if len(other_held) > 1 else ''} held — {codes}",
+                " · ".join(sorted({row["reason"] for row in other_held}))[:400],
                 tone="danger",
                 icon="&#9888;",
                 trailing=badge("BLOCKED", "red"),

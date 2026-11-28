@@ -66,7 +66,7 @@ def _authorize(record: dict[str, Any], order: dict[str, Any], coverage: dict[str
 
 
 def place_orders(record: dict[str, Any], chart: dict[str, Any] | None, picks: list[dict[str, Any]], *,
-                 user: str, priority: str = "Routine", plan_text: str = "",
+                 user: str, priority: str = "Routine", plan_text: str = "", perform_in_clinic: bool = True,
                  client: HealthcareApiClient | None = None) -> tuple[list[dict[str, Any]], str]:
     """Create orders from picked suggestions (or catalog tests), save them, run prior auth, extend the Plan.
 
@@ -88,6 +88,8 @@ def place_orders(record: dict[str, Any], chart: dict[str, Any] | None, picks: li
             key, record, reasons=suggestion.get("reasons") or ["Added by clinician"], linked_dx=linked,
             ordered_by=user, priority=priority, source="CDS" if suggestion else "Clinician",
         )
+        if perform_in_clinic and dx.done_in_clinic(dx.by_key()[key]):
+            dx.mark_performed(order)  # point-of-care test done / specimen collected during the visit
         sync_order(record, order, client)  # gets the ORD number first, so the authorization can cite it
         _authorize(record, order, coverage, user, client)
         sync_order(record, order, client)
@@ -96,6 +98,19 @@ def place_orders(record: dict[str, Any], chart: dict[str, Any] | None, picks: li
         existing.add(key)
         created.append(order)
     return created, plan_text
+
+
+def perform_in_clinic(record: dict[str, Any], client: HealthcareApiClient | None = None) -> list[dict[str, Any]]:
+    """Mark every still-open point-of-care test / in-house specimen as performed (collected) now."""
+    client = client or HealthcareApiClient()
+    done = []
+    for order in record.get("diagnostic_orders") or []:
+        test = dx.by_key().get(order.get("test_key"))
+        if order.get("status") == dx.ORDERED and test and dx.done_in_clinic(test) and order.get("order_id"):
+            dx.mark_performed(order)
+            sync_order(record, order, client)
+            done.append(order)
+    return done
 
 
 def find_order(record: dict[str, Any], order_id: str) -> dict[str, Any] | None:

@@ -356,6 +356,11 @@ def record_result(order: dict[str, Any], value: Any, now: datetime | None = None
     return order
 
 
+def done_in_clinic(test: DiagnosticTest) -> bool:
+    """Point-of-care tests and in-house specimen collection happen during the visit; studies are scheduled."""
+    return bool(test.point_of_care or test.specimen)
+
+
 def cancel_order(order: dict[str, Any], reason: str = "") -> dict[str, Any]:
     if order.get("status") in BILLABLE_STATUSES:
         raise ValueError("A performed test cannot be cancelled; correct it with a coder instead.")
@@ -438,10 +443,13 @@ def billing_lines(record: dict[str, Any]) -> list[dict[str, Any]]:
     lines = []
     blood_dx: list[str] = []
     blood_drawn = False
+    encounter_dx = encounter_diagnoses(record, None)
     for order in active_orders(record):
         test = by_key().get(order.get("test_key"))
         if test is None:
             continue
+        # Diagnoses coded after the order was placed still justify it (medical necessity / pointers).
+        linked = list(dict.fromkeys([*(order.get("linked_dx") or []), *linked_diagnoses(test, encounter_dx)]))
         pa = order.get("prior_auth") or {}
         status = order.get("status")
         result = order.get("result") or {}
@@ -463,13 +471,13 @@ def billing_lines(record: dict[str, Any]) -> list[dict[str, Any]]:
                 "test_key": test.key,
                 "state": state,
                 "reason": reason,
-                "linked_dx": list(order.get("linked_dx") or []),
+                "linked_dx": linked,
                 "auth_number": pa.get("auth_number") or "",
                 "prior_auth_required": bool(pa.get("required")),
             })
         if state == "BILLABLE" and test.specimen == "Blood":
             blood_drawn = True
-            blood_dx.extend(order.get("linked_dx") or [])
+            blood_dx.extend(linked)
     if blood_drawn:
         lines.append({
             "code": VENIPUNCTURE_CPT,
