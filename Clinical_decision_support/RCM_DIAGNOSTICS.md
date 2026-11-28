@@ -9,6 +9,24 @@ This branch fixes four gaps in the consultation-to-cash flow.
 | Prior authorization was a static list | Runs **in the background** when a gated study is ordered; the clinician sees only a small badge, and billing holds the line until it is approved |
 | Billing stopped at gross charges; claims had no payer, member ID or diagnosis pointers | **RCM engine**: eligibility and benefits, expected adjudication, patient account, 837 → 277CA → 835, statement, aging, next best action, KPIs |
 
+## Product workflow: who does what, and what is enforced
+
+| Step | Who | Screen | What happens | Gate |
+|---|---|---|---|---|
+| 1 Registration | Front desk | Consultations | Patient (MRN), primary insurance (payer, plan, member ID) and an encounter `ENC#########` are created in the EHR | First and last name; DOB for a new patient |
+| 2 Ambient scribe | Clinician | Consultations → Record | Speech → transcript → SOAP draft | — |
+| 3 CDS and orders | Clinician | Clinical Review & CDS | Harrison's-grounded recommendations. Tests are **ordered** (Routine / STAT) and nothing is marked performed. Prior authorization runs **silently** for gated studies, and only a status badge shows. | Orders only before signing |
+| 4 Sign | Clinician | SOAP Note & Sign | The note is authenticated and goes to the coding queue | Clinical Review · Approve |
+| 5 Coding & HCC | Coder | Coding & HCC | ICD-10-CM, CPT and V28 HCC with hierarchies; ordered diagnostics are shown with their codes | **Codes can be accepted only on a signed note** |
+| 6 Charge capture | RCM / ancillary | Billing & RCM | Confirm what was **performed / collected** and record results; confirmed services join the bill | RCM Workspace · Edit |
+| 7 Bill and estimate | RCM | Billing & RCM | Eligibility, expected allowed amount, patient and payer split, denial risks | **Signed note + at least one accepted diagnosis + attestation** |
+| 8 Claims | RCM | Claim Generation | 837P/837I with MRN, member ID, per-line diagnosis pointers and auth number. Then submit (277CA) and payer remittance (835). | Submit once; post a remittance only on an accepted claim |
+| 9 Patient A/R | RCM | Patient A/R | Statement, aging, priority, next action, payments, financial assistance | — |
+
+**System of record.** The EHR in Snowflake holds orders, results, prior authorizations, benefits, patient accounts and claim lines. CDS and Billing reconcile with it silently each time they open. This picks up results from charge capture and payer decisions from the Prior Authorization page, and it restores any order whose save was interrupted.
+
+**Stability.** Pooled Snowflake sessions are retired before their four-hour token expires. An expired session is re-authenticated automatically instead of returning "Database unavailable".
+
 ## Also fixed
 
 - **MRN on every screen.** These now show the MRN, never the internal EHR key (P100067):

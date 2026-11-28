@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import atexit
 import json
+import os
 import logging
 import queue
 import threading
@@ -76,7 +77,14 @@ def _is_connection_error(error: Exception) -> bool:
     if isinstance(error, (errors.OperationalError, errors.InterfaceError)):
         return True
     text = str(error).lower()
-    return any(marker in text for marker in ("session no longer exists", "authentication token has expired", "connection is closed"))
+    markers = ("session no longer exists", "authentication token has expired", "connection is closed",
+               "master token", "re-authentication", "token has expired", "390114", "390112", "250001")
+    return any(marker in text for marker in markers)
+
+
+# Snowflake session tokens last about four hours; retire pooled connections well before that so a
+# long-running server never hands out an expired session ("Master token can never be renewed").
+MAX_CONNECTION_AGE_SECONDS = float(os.getenv("SNOWFLAKE_MAX_CONNECTION_AGE_MIN", "180")) * 60
 
 
 class ConnectionPool:
@@ -93,9 +101,16 @@ class ConnectionPool:
                 try:
                     connection = self._idle.get_nowait()
                 except queue.Empty:
-                    return _connect(self.settings)
-                if not connection.is_closed():
+                    connection = _connect(self.settings)
+                    connection._nuucare_created = time.monotonic()
                     return connection
+                age = time.monotonic() - getattr(connection, "_nuucare_created", 0.0)
+                if not connection.is_closed() and age < MAX_CONNECTION_AGE_SECONDS:
+                    return connection
+                try:
+                    connection.close()
+                except Exception:  # noqa: BLE001 - expired or already closed
+                    pass
         except Exception:
             self._slots.release()
             raise
@@ -129,9 +144,13 @@ class ConnectionPool:
     def close(self) -> None:
         while True:
             try:
-                self._idle.get_nowait().close()
+                connection = self._idle.get_nowait()
             except queue.Empty:
                 return
+            try:
+                connection.close()
+            except Exception:  # noqa: BLE001 - expired sessions may fail to close
+                pass
 
 
 _POOLS: dict[str, ConnectionPool] = {}
@@ -161,7 +180,8 @@ def _run(operation, profile: str = "app"):
             raise
         except Exception as error:  # noqa: BLE001 - translated below
             if attempt == 1 and _is_connection_error(error):
-                log.warning("Snowflake connection dropped, retrying: %s", error)
+                log.warning("Snowflake session expired or dropped, reconnecting: %s", error)
+                pool(profile).close()  # every idle connection shares the same token age: start fresh
                 time.sleep(0.5)
                 continue
             raise StorageError(f"Snowflake operation failed: {error}") from error

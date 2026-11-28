@@ -184,9 +184,6 @@ def _render_orders(record, can_cancel):
             for order in cancellable:
                 st.button(f"Discontinue {order['name']}", key=f"dx_cancel_{order['order_id']}", type="tertiary",
                           on_click=_update, args=(record, order["order_id"], "cancel"))
-    if any((order.get("prior_auth") or {}).get("pa_id") for order in orders):
-        st.button("Refresh payer authorizations", key=f"dx_pa_refresh_{record.get('id')}", type="tertiary",
-                  on_click=_refresh_authorizations, args=(record,))
 
 
 def render_charge_capture(record, editable):
@@ -226,7 +223,14 @@ def render_charge_capture(record, editable):
                                args=(record, order["order_id"], "perform"))
 
 
+def sync_from_ehr(record, chart):
+    """Silent reconciliation with the EHR before showing orders (status, results, payer decisions)."""
+    if orders_service.reconcile_from_chart(record, chart):
+        save_record(record)
+
+
 def render_diagnostic_orders(record, chart, is_approved):
+    sync_from_ehr(record, chart)
     orders = dx.active_orders(record)
     resulted = sum(order.get("status") == dx.RESULTED for order in orders)
     with st.container(border=True):

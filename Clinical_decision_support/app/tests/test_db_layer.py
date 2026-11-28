@@ -108,3 +108,32 @@ def test_backend_selection(monkeypatch):
     settings.reset_cache()
     with pytest.raises(ValueError):
         settings.storage_backend()
+
+
+def test_expired_snowflake_session_is_recognised_and_old_connections_are_retired(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.db import client
+
+    assert client._is_connection_error(Exception("250001 (08001): Master token can never be renewed - full re-authentication required"))
+
+    class FakeConnection:
+        def __init__(self):
+            self.closed = False
+
+        def is_closed(self):
+            return self.closed
+
+        def close(self):
+            self.closed = True
+
+    made = []
+    monkeypatch.setattr(client, "_connect", lambda settings: made.append(FakeConnection()) or made[-1])
+    connection_pool = client.ConnectionPool(SimpleNamespace(pool_size=2))
+    first = connection_pool._acquire()
+    connection_pool._release(first)
+    assert connection_pool._acquire() is first  # fresh connections are reused
+    connection_pool._release(first)
+    first._nuucare_created -= client.MAX_CONNECTION_AGE_SECONDS + 1
+    second = connection_pool._acquire()
+    assert second is not first and first.closed  # an old session is retired, never handed out

@@ -11,7 +11,7 @@ import streamlit as st
 from frontend import diagnostics as dx
 from frontend import rcm, rcm_service
 from frontend.claim_generation_page import build_ambient_bill, register_generated_bill
-from frontend.views.orders_panel import render_charge_capture
+from frontend.views.orders_panel import render_charge_capture, sync_from_ehr
 from frontend.clinical_text import best_excerpt
 from frontend.coding_validation import summarize as summarize_checks
 from frontend.ehr_chart import active_drug_allergies, age_from_dob, chart_rows, format_date, latest_first, primary_coverage
@@ -480,6 +480,7 @@ def show_billing():
     if st.session_state.billing_patient_key != _patient_key(record):
         st.session_state.billing_patient_key = _patient_key(record)
 
+    sync_from_ehr(record, record_chart(record))  # orders, results and payer decisions as the EHR has them
     guardrail = billing_guardrail_rows(record)
     billable = [row for row in guardrail if row["guardrail"] == "BILLABLE"]
     held = [row for row in guardrail if row["guardrail"] in HELD_STATES]
@@ -616,14 +617,19 @@ def show_billing():
 
     can_release = can("RCM Workspace", "Approve")
     attested = st.session_state.get(attest_key, False)
+    signed = record.get("status") == "Approved"
     actions.button(
         "Send to RCM (claim draft) ➤",
         key="accent_billing_send",
         on_click=send_to_rcm,
-        disabled=not priced_rows or not attested or not can_release,
+        disabled=not priced_rows or not attested or not can_release or not signed or not dx_codes,
         help=(
             "Your role cannot release claims (RCM Workspace · Approve)."
             if not can_release
+            else "The clinical note is not signed yet: a claim needs an authenticated note."
+            if not signed
+            else "No accepted diagnosis: the coder accepts at least one ICD-10-CM code in Coding & HCC."
+            if not dx_codes
             else "No priced, billable line yet: confirm performed services with the coder override below."
             if not priced_rows
             else "Tick the coder attestation below."

@@ -349,7 +349,8 @@ def _render_evidence_panel(record, row, is_signed):
             st.button(
                 "Accept",
                 key=f"accent_code_accept_{row['key']}",
-                disabled=not can_code,
+                disabled=not can_code or not is_signed,
+                help=None if is_signed else "Codes are accepted from the signed note. Ask the clinician to sign first.",
                 on_click=set_code_decision,
                 args=(record, [row["key"]], "Accepted"),
             )
@@ -571,7 +572,8 @@ def show_codes():
                         "Accept selected",
                         key="codes_bulk_accept",
                         type="primary",
-                        disabled=not selected_keys or not can_code,
+                        disabled=not selected_keys or not can_code or not is_signed,
+                        help=None if is_signed else "Codes are accepted from the signed note. Ask the clinician to sign first.",
                         on_click=set_code_decision,
                         args=(record, selected_keys, "Accepted"),
                     )

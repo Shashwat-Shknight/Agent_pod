@@ -133,6 +133,68 @@ def update_order(record: dict[str, Any], order_id: str, action: str, value: Any 
     return sync_order(record, order, client)
 
 
+_STATUS_RANK = {dx.ORDERED: 0, dx.PERFORMED: 1, dx.RESULTED: 2, dx.CANCELLED: 3}
+
+
+def _rows(chart: dict[str, Any] | None, sheet: str) -> list[dict[str, Any]]:
+    return [row for row in ((chart or {}).get("records") or {}).get(sheet) or [] if isinstance(row, dict)]
+
+
+def reconcile_from_chart(record: dict[str, Any], chart: dict[str, Any] | None) -> bool:
+    """Bring the encounter's orders in line with the EHR (Snowflake), which is the system of record.
+
+    Picks up status and results recorded at charge capture, payer decisions recorded on the Prior
+    Authorization page, and orders that reached the EHR when a save was interrupted. Returns True when
+    the encounter changed (the caller saves it).
+    """
+    encounter_id = str(record.get("ehr_encounter_id") or "")
+    if not encounter_id or not chart:
+        return False
+    ehr_orders = {str(row.get("Order_ID")): row for row in _rows(chart, "Orders_Procedures")
+                  if str(row.get("Encounter_ID")) == encounter_id and row.get("Order_ID")}
+    authorizations = {str(row.get("PA_ID")): row for row in _rows(chart, "Prior_Authorizations") if row.get("PA_ID")}
+    by_order_pa = {str(row.get("Order_ID")): row for row in authorizations.values() if row.get("Order_ID")}
+    orders = record.setdefault("diagnostic_orders", [])
+    changed = False
+    for order in orders:
+        row = ehr_orders.get(str(order.get("order_id") or ""))
+        if row:
+            status = row.get("Status")
+            if status in _STATUS_RANK and _STATUS_RANK[status] > _STATUS_RANK.get(order.get("status"), 0):
+                order["status"] = status
+                order["performed_at"] = order.get("performed_at") or (str(row.get("Performed_Date") or "") or None)
+                if status == dx.RESULTED and row.get("Result_Value") and not order.get("result"):
+                    test = dx.by_key().get(order.get("test_key"))
+                    order["result"] = {"value": row["Result_Value"], "unit": test.unit if test else "",
+                                       "reference": test.reference if test else "", "flag": row.get("Result_Flag") or "",
+                                       "resulted_at": str(row.get("Performed_Date") or "")}
+                changed = True
+        pa_row = authorizations.get(str((order.get("prior_auth") or {}).get("pa_id") or "")) or by_order_pa.get(str(order.get("order_id")))
+        if pa_row:
+            summary = pa.order_summary(pa_row)
+            current = order.get("prior_auth") or {}
+            if (summary["status"], summary["auth_number"]) != (current.get("status"), current.get("auth_number") or ""):
+                order["prior_auth"] = summary
+                changed = True
+    known = {str(order.get("order_id")) for order in orders}
+    catalog_by_cpt = {"+".join(test.cpts): test for test in dx.catalog()}
+    for order_id, row in ehr_orders.items():
+        test = catalog_by_cpt.get(str(row.get("CPT_HCPCS") or ""))
+        if order_id in known or test is None:
+            continue
+        restored = dx.new_order(test.key, record, reasons=["Restored from the EHR order"],
+                                linked_dx=[code for code in str(row.get("Linked_Diagnosis") or "").split(";") if code],
+                                ordered_by=str(row.get("Ordering_Provider") or ""), priority=str(row.get("Priority") or "Routine"),
+                                source=str(row.get("Order_Source") or "EHR"))
+        restored.update(order_id=order_id, status=row.get("Status") if row.get("Status") in _STATUS_RANK else dx.ORDERED,
+                        ordered_at=str(row.get("Order_Date") or ""), performed_at=str(row.get("Performed_Date") or "") or None)
+        if by_order_pa.get(order_id):
+            restored["prior_auth"] = pa.order_summary(by_order_pa[order_id])
+        orders.append(restored)
+        changed = True
+    return changed
+
+
 def refresh_authorizations(record: dict[str, Any], client: HealthcareApiClient | None = None) -> int:
     """Pull decisions staff recorded on the Prior Authorization page back onto the encounter's orders."""
     client = client or HealthcareApiClient()

@@ -12,7 +12,7 @@ from app.db import client
 # ---------- Draft bills released to RCM ----------
 def save_generated_bill(bill_key: str, source: str, bill: dict[str, Any], actor: str = "") -> None:
     patient = bill.get("patient") if isinstance(bill.get("patient"), dict) else {}
-    total = bill.get("gross_total", bill.get("total"))
+    total = bill.get("gross_total", bill.get("total", bill.get("gross")))
     try:
         total = round(float(str(total).replace("$", "").replace(",", "")), 2) if total not in (None, "") else None
     except ValueError:

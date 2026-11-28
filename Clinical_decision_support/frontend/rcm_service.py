@@ -32,11 +32,12 @@ def patient_name(record: dict[str, Any], chart: dict[str, Any] | None) -> str:
 
 
 def diagnosis_codes(record: dict[str, Any]) -> list[str]:
+    """Diagnoses that may go on a claim: only those the certified coder accepted, in matcher order."""
     codes = []
     for item in (record.get("code_results") or {}).get("icd10", []) or []:
         code = str((item or {}).get("ICD-10 Code") or "").strip().upper()
         decision = ((record.get("code_decisions") or {}).get(f"ICD:{code}") or {}).get("status")
-        if code and decision != "Rejected" and code not in codes:
+        if code and decision == "Accepted" and code not in codes:
             codes.append(code)
     return codes
 

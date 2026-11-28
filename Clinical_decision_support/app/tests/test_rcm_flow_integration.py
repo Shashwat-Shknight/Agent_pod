@@ -59,6 +59,8 @@ def test_order_to_payment_flow_persists_every_step(api):
         "recommendations": "1. **Check HbA1c**\n2. **MRI brain for new migraine with aura**",
         "code_results": {"icd10": [{"ICD-10 Code": "E11.65", "Matched Disease/Injury": "Type 2 diabetes with hyperglycemia"},
                                    {"ICD-10 Code": "G43.109", "Matched Disease/Injury": "Migraine with aura"}]},
+        "code_decisions": {"ICD:E11.65": {"status": "Accepted"}, "ICD:G43.109": {"status": "Accepted"}},
+        "status": "Approved",
     }
     chart = api.get_patient_chart("P100001")
     suggestions = {item["test_key"]: item for item in dx.suggest_tests(record, chart, date(2026, 11, 20))}
