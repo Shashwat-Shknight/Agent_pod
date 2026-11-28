@@ -40,7 +40,7 @@ def _place(record, chart, picks, priority, perform_key):
         created, plan_text = orders_service.place_orders(
             record, chart, picks, user=current_user()["username"], priority=priority,
             plan_text=st.session_state.get("edit_summary") or record.get("summary") or "",
-            perform_in_clinic=bool(st.session_state.get(perform_key, True)),
+            perform_in_clinic=False,  # CDS places orders; performance is captured at charge capture (Billing & RCM)
         )
     except (RuntimeError, requests.exceptions.RequestException, ValueError) as error:
         _flash("error", f"Orders were not placed: {backend_error_message(error)}")
@@ -139,12 +139,6 @@ def _render_suggestions(record, chart, editable):
     )
     picks += [{"test_key": key} for key in extra]
     perform_key = f"dx_perform_now_{record_key}"
-    st.checkbox(
-        "Point-of-care tests are done and specimens collected during this visit", value=True, key=perform_key,
-        disabled=not editable,
-        help="ECG, point-of-care A1c, urine dip, rapid tests and in-house blood/urine draws become billable now. "
-             "Imaging and cardiac studies stay ordered until they are performed.",
-    )
     left, right = st.columns([3, 2], vertical_alignment="bottom")
     priority = left.radio("Priority", ["Routine", "STAT"], horizontal=True, key=f"dx_priority_{record_key}", disabled=not editable)
     right.button(
@@ -153,11 +147,8 @@ def _render_suggestions(record, chart, editable):
     )
 
 
-def _render_orders(record, can_result):
+def _orders_table(record):
     orders = record.get("diagnostic_orders") or []
-    if not orders:
-        return
-    st.markdown('<div class="nc-label" style="margin-top:.8rem">ORDERS ON THIS ENCOUNTER</div>', unsafe_allow_html=True)
     rows = []
     for order in orders:
         test = dx.by_key().get(order.get("test_key"))
@@ -177,29 +168,62 @@ def _render_orders(record, can_result):
             _pa_badge(order) or '<span style="color:#94a3b8">—</span>',
         ])
     render_html_table(["Order", "Test", "Status", "Result", "Authorization"], rows)
-    open_orders = [order for order in orders if order.get("status") in (dx.ORDERED, dx.PERFORMED) and order.get("order_id")]
-    in_clinic = [order for order in orders if order.get("status") == dx.ORDERED
-                 and dx.done_in_clinic(dx.by_key()[order["test_key"]])]
-    if in_clinic and can_result:
-        st.button(f"Mark {len(in_clinic)} in-clinic test(s) performed / specimens collected", key=f"dx_perform_all_{record.get('id')}",
-                  type="primary", on_click=_perform_in_clinic, args=(record,))
-    if open_orders and can_result:
-        with st.expander("Record specimen collection or results"):
-            for order in open_orders:
-                test = dx.by_key()[order["test_key"]]
-                key = f"dx_result_{order['order_id']}"
-                cols = st.columns([3, 2.2, 1.6, 1.6, 1.2], vertical_alignment="bottom")
-                cols[0].markdown(f"**{escape(order['name'])}**<br><small>{escape(test.reference or '')}</small>", unsafe_allow_html=True)
-                cols[1].text_input(f"Result ({test.unit or 'text'})", key=key, placeholder=test.reference or "Result")
-                cols[2].button("Save result", key=f"{key}_save", on_click=_update, args=(record, order["order_id"], "result", key))
-                if order["status"] == dx.ORDERED:
-                    cols[3].button(test.performed_label, key=f"{key}_perform", on_click=_update,
-                                   args=(record, order["order_id"], "perform"))
-                    cols[4].button("Cancel", key=f"{key}_cancel", type="tertiary", on_click=_update,
-                                   args=(record, order["order_id"], "cancel"))
+
+
+def _render_orders(record, can_cancel):
+    """CDS view of the encounter's orders: status only. The clinician may discontinue an unperformed order."""
+    orders = record.get("diagnostic_orders") or []
+    if not orders:
+        return
+    st.markdown('<div class="nc-label" style="margin-top:.8rem">ORDERS ON THIS ENCOUNTER</div>', unsafe_allow_html=True)
+    _orders_table(record)
+    st.caption("Specimen collection, test performance and results are recorded at charge capture in Billing & RCM.")
+    cancellable = [order for order in orders if order.get("status") == dx.ORDERED and order.get("order_id")]
+    if cancellable and can_cancel:
+        with st.popover("Discontinue an order"):
+            for order in cancellable:
+                st.button(f"Discontinue {order['name']}", key=f"dx_cancel_{order['order_id']}", type="tertiary",
+                          on_click=_update, args=(record, order["order_id"], "cancel"))
     if any((order.get("prior_auth") or {}).get("pa_id") for order in orders):
         st.button("Refresh payer authorizations", key=f"dx_pa_refresh_{record.get('id')}", type="tertiary",
                   on_click=_refresh_authorizations, args=(record,))
+
+
+def render_charge_capture(record, editable):
+    """Billing & RCM: confirm what was actually performed / collected and record results; that is the charge event."""
+    orders = [order for order in record.get("diagnostic_orders") or [] if order.get("status") != dx.CANCELLED]
+    if not orders:
+        return
+    with st.container(border=True):
+        open_orders = [order for order in orders if order.get("status") in (dx.ORDERED, dx.PERFORMED) and order.get("order_id")]
+        card_title("Charge capture · ordered services",
+                   "Confirm each test was performed or its specimen collected; only confirmed services are billed",
+                   trailing=badge(f"{len(open_orders)} open", "amber" if open_orders else "green"))
+        flash = st.session_state.pop(FLASH_KEY, None)
+        if flash:
+            getattr(st, flash[0])(flash[1])
+        _orders_table(record)
+        if not editable:
+            st.caption("Your role can view charge capture but not change it (RCM Workspace · Edit).")
+            return
+        in_clinic = [order for order in orders if order.get("status") == dx.ORDERED
+                     and dx.done_in_clinic(dx.by_key()[order["test_key"]])]
+        if in_clinic:
+            st.button(f"Confirm {len(in_clinic)} in-clinic test(s) performed / specimens collected",
+                      key=f"cc_perform_all_{record.get('id')}", type="primary", on_click=_perform_in_clinic, args=(record,),
+                      help="Point-of-care tests and in-house blood, urine and swab collections. Scheduled studies "
+                           "(imaging, nuclear, sleep) are confirmed one by one when performed.")
+        for order in open_orders:
+            test = dx.by_key()[order["test_key"]]
+            key = f"cc_result_{order['order_id']}"
+            cols = st.columns([3, 2.2, 1.5, 1.8], vertical_alignment="bottom")
+            cols[0].markdown(f"**{escape(order['name'])}** · <code>{escape(order['order_id'])}</code><br>"
+                             f"<small>{escape(test.reference or '')}</small>", unsafe_allow_html=True)
+            cols[1].text_input(f"Result ({test.unit or 'text'})", key=key, placeholder=test.reference or "Result")
+            cols[2].button("Save result", key=f"{key}_save", on_click=_update, args=(record, order["order_id"], "result", key))
+            if order["status"] == dx.ORDERED:
+                cols[3].button(test.performed_label, key=f"{key}_perform", on_click=_update,
+                               args=(record, order["order_id"], "perform"))
 
 
 def render_diagnostic_orders(record, chart, is_approved):
@@ -219,7 +243,7 @@ def render_diagnostic_orders(record, chart, is_approved):
             return
         editable = not is_approved and can("Clinical Review", "Edit")
         if is_approved:
-            st.caption("The note is signed: new orders need an addendum. Results can still be recorded below.")
+            st.caption("The note is signed: new orders need an addendum.")
         else:
             _render_suggestions(record, chart, editable)
         _render_orders(record, can("Clinical Review", "Edit"))

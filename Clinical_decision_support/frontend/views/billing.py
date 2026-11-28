@@ -11,6 +11,7 @@ import streamlit as st
 from frontend import diagnostics as dx
 from frontend import rcm, rcm_service
 from frontend.claim_generation_page import build_ambient_bill, register_generated_bill
+from frontend.views.orders_panel import render_charge_capture
 from frontend.clinical_text import best_excerpt
 from frontend.coding_validation import summarize as summarize_checks
 from frontend.ehr_chart import active_drug_allergies, age_from_dob, chart_rows, format_date, latest_first, primary_coverage
@@ -682,13 +683,12 @@ def show_billing():
             render_banner(
                 f"{len(pending_orders)} ordered test(s) not performed yet — " + ", ".join(row["code"] for row in pending_orders),
                 "A test is billed once it is performed or its specimen collected (billing an unperformed service is a "
-                "false claim). Record collection or results on the CDS workbench; the lines join this bill automatically.",
+                "false claim). Confirm them in Charge capture below; confirmed lines join this bill automatically.",
                 tone="warn",
                 icon="&#9432;",
                 trailing=badge("AWAITING PERFORMANCE", "amber"),
             )
-            st.button("Record collection / results →", key="billing_open_orders", type="secondary",
-                      on_click=open_record, args=(record, "review"))
+        render_charge_capture(record, can("RCM Workspace", "Edit"))
         if other_held:
             codes = ", ".join(row["code"] for row in other_held)
             render_banner(

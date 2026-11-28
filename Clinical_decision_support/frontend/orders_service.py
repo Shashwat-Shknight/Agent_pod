@@ -66,7 +66,7 @@ def _authorize(record: dict[str, Any], order: dict[str, Any], coverage: dict[str
 
 
 def place_orders(record: dict[str, Any], chart: dict[str, Any] | None, picks: list[dict[str, Any]], *,
-                 user: str, priority: str = "Routine", plan_text: str = "", perform_in_clinic: bool = True,
+                 user: str, priority: str = "Routine", plan_text: str = "", perform_in_clinic: bool = False,
                  client: HealthcareApiClient | None = None) -> tuple[list[dict[str, Any]], str]:
     """Create orders from picked suggestions (or catalog tests), save them, run prior auth, extend the Plan.
 
